@@ -151,6 +151,22 @@
         <h2><span class="n">1</span> Estudiante</h2>
         <label for="nombre">Nombre completo</label>
         <input type="text" id="nombre" placeholder="Ej: María José Pérez Gómez" autocomplete="off">
+        <div class="fila">
+          <div><label for="docTipo">Documento</label>
+            <select id="docTipo">
+              <option value="T.I.">T.I.</option>
+              <option value="R.C.">R.C.</option>
+              <option value="NUIP">NUIP</option>
+              <option value="C.C.">C.C.</option>
+              <option value="C.E.">C.E.</option>
+              <option value="PPT">PPT</option>
+              <option value="PEP">PEP</option>
+            </select>
+          </div>
+          <div><label for="docNum">Número <span style="font-weight:400;color:var(--suave)">(opcional)</span></label>
+            <input type="text" id="docNum" inputmode="numeric" placeholder="1098765432" autocomplete="off"></div>
+        </div>
+        <label class="check"><input type="checkbox" id="docNo" checked> Escribir «No.» antes del número</label>
         <div class="botones">
           <button id="btnPng" title="Descargar imagen PNG">⬇ PNG</button>
           <button id="btnPdf" title="Descargar PDF">⬇ PDF</button>
@@ -206,7 +222,8 @@
       <section class="panel">
         <h2><span class="n">4</span> Todo el curso de una vez</h2>
         <label for="lista">Pega la lista de nombres (uno por línea)</label>
-        <textarea id="lista" placeholder="Ana Lucía Torres&#10;Juan David Rojas&#10;..."></textarea>
+        <textarea id="lista" placeholder="Ana Lucía Torres; 1098765432&#10;Juan David Rojas; 1097654321&#10;..."></textarea>
+        <p class="nota">Si quieres el documento, ponlo después del nombre con punto y coma: <b>Nombre; número</b>. También puedes copiar y pegar dos columnas desde Excel. Si un estudiante tiene otro tipo de documento: <b>Nombre; R.C.; número</b>.</p>
         <p class="nota" id="conteo">Toca un nombre para verlo en el diploma.</p>
         <div class="chips" id="chips"></div>
         <button id="btnLote">📄 Generar un PDF con todos</button>
@@ -280,16 +297,46 @@ const lienzo = $("lienzo"), ctx = lienzo.getContext("2d");
 const imagenes = {};
 let actual = MODELOS[0];
 let estilo = {...ESTILO_INICIAL};
-let nombreVista = null;   // nombre de la lista que se está mostrando
+let nombreVista = null;   // línea de la lista que se está mostrando
+
+const TIPOS = ["T.I.","R.C.","NUIP","C.C.","C.E.","PPT","PEP"];
+function normalizarTipo(t){
+  const k = t.toUpperCase().replace(/[.\s]/g,"");
+  return TIPOS.find(x=>x.replace(/\./g,"")===k) || t.trim();
+}
+// "Nombre; número" · "Nombre; tipo; número" · "Nombre<TAB>número" · "Nombre"
+function parsearLinea(linea){
+  const partes = linea.split(/\t|;/).map(x=>x.trim()).filter(Boolean);
+  const e = {nombre: partes[0] || "", tipo: $("docTipo").value, doc: ""};
+  if(partes.length === 2) e.doc = partes[1];
+  if(partes.length >= 3){ e.tipo = normalizarTipo(partes[1]); e.doc = partes[2]; }
+  if(partes.length === 1){ // "Nombre 1098765432" sin separador
+    const m = linea.match(/^(.*?\D)\s+([\d.\s]{5,})$/);
+    if(m){ e.nombre = m[1].trim(); e.doc = m[2]; }
+  }
+  return e;
+}
+function entradaActual(){
+  if(nombreVista) return parsearLinea(nombreVista);
+  return {nombre: $("nombre").value, tipo: $("docTipo").value, doc: $("docNum").value};
+}
+function formatoDoc(e){
+  const crudo = (e.doc||"").trim();
+  if(!crudo) return "";
+  const digitos = crudo.replace(/[.\s]/g,"");
+  const num = /^\d+$/.test(digitos) ? digitos.replace(/\B(?=(\d{3})+(?!\d))/g,".") : crudo;
+  return `${e.tipo} ${$("docNo").checked ? "No. " : ""}${num}`;
+}
 
 // ---------- Guardado ----------
 const CLAVE = "diplomas-iersss";
-const CAMPOS = ["nombre","lugar","dia","mes","rector","director","lista"];
+const CAMPOS = ["nombre","docTipo","docNum","lugar","dia","mes","rector","director","lista"];
 function leerGuardado(){ try{ return JSON.parse(localStorage.getItem(CLAVE) || "{}"); }catch(e){ return {}; } }
 function guardar(){
   try{
     const d = {modelo: actual.id, estilo};
     CAMPOS.forEach(k=> d[k] = $(k).value);
+    d.docNo = $("docNo").checked;
     localStorage.setItem(CLAVE, JSON.stringify(d));
   }catch(e){}
 }
@@ -336,7 +383,7 @@ function escribir(texto, linea, subir, familia, tamano, peso){
   ctx.fillText(texto, (x0+x1)/2, y - subir);
 }
 
-async function dibujar(nombre){
+async function dibujar(entrada){
   const m = actual;
   const img = await cargarImagen(m);
   if(lienzo.width !== img.naturalWidth || lienzo.height !== img.naturalHeight){
@@ -346,28 +393,61 @@ async function dibujar(nombre){
   ctx.drawImage(img, 0, 0);
   const s = m.s;
 
-  // Nombre del estudiante
-  let n = (nombre ?? nombreVista ?? $("nombre").value).trim().replace(/\s+/g," ");
+  // Nombre del estudiante y documento
+  const e = entrada || entradaActual();
+  let n = (e.nombre||"").trim().replace(/\s+/g," ");
   if(estilo.mayus) n = n.toLocaleUpperCase("es");
+  const doc = n ? formatoDoc(e) : "";
   if(n){
     const L = LETRAS.find(l=>l.id===estilo.letra) || LETRAS[0];
     const [y, x0, x1] = m.nombre;
+    const max = (x1-x0) - 6;
+    const familia = L.css + ", cursive";
+    const fDoc = "'Merriweather', Georgia, serif";
+    const cx = (x0+x1)/2;
     const base = Math.round(L.t * s * estilo.tamano / 100);
-    ajustarFuente(n, (x1-x0)-6, base, L.css + ", cursive", L.peso);
-    const cx = (x0+x1)/2, cy = y - Math.round(10*s) - estilo.altura*s;
-    ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+    const cy = y - Math.round(10*s) - estilo.altura*s;
+    let xNombre = cx, alinear = "center";
+    let docTam = 0, docX = 0, docY = 0, docAlinear = "center";
+
+    if(doc){
+      // nombre y documento en la misma línea, centrados como un grupo
+      docTam = Math.round(20*s);
+      const sep = Math.round(22*s);
+      let t = base, anchoN, anchoD;
+      for(;;){
+        ctx.font = `${L.peso||""} ${t}px ${familia}`.trim(); anchoN = ctx.measureText(n).width;
+        ctx.font = `italic ${docTam}px ${fDoc}`; anchoD = ctx.measureText(doc).width;
+        if(anchoN + sep + anchoD <= max || t <= 10) break;
+        t -= 1; if(docTam > 12*s && t < base*0.7) docTam -= 0.5;
+      }
+      ctx.font = `${L.peso||""} ${t}px ${familia}`.trim();
+      const inicio = cx - (anchoN + sep + anchoD)/2;
+      xNombre = inicio; alinear = "left";
+      docX = inicio + anchoN + sep; docY = cy; docAlinear = "left";
+    }else{
+      ajustarFuente(n, max, base, familia, L.peso);
+    }
+
+    ctx.textAlign = alinear; ctx.textBaseline = "alphabetic";
     ctx.save();
     if(estilo.sombra){ ctx.shadowColor = "rgba(0,0,0,.35)"; ctx.shadowBlur = 6*s; ctx.shadowOffsetX = 2*s; ctx.shadowOffsetY = 3*s; }
     if(estilo.brillo){
       ctx.lineJoin = "round"; ctx.strokeStyle = "#f3d27a"; ctx.lineWidth = 7*s;
-      ctx.strokeText(n, cx, cy);
+      ctx.strokeText(n, xNombre, cy);
       ctx.shadowColor = "transparent";
       ctx.strokeStyle = "#b8860b"; ctx.lineWidth = 2.5*s;
-      ctx.strokeText(n, cx, cy);
+      ctx.strokeText(n, xNombre, cy);
     }
     ctx.fillStyle = estilo.color;
-    ctx.fillText(n, cx, cy);
+    ctx.fillText(n, xNombre, cy);
     ctx.restore();
+
+    if(doc){
+      ctx.font = `italic ${docTam}px ${fDoc}`;
+      ctx.textAlign = docAlinear; ctx.fillStyle = AZUL;
+      ctx.fillText(doc, docX, docY);
+    }
   }
 
   // Lugar, fecha y firmas
@@ -433,7 +513,7 @@ function agregarPagina(pdf){
   if(h > ph - 2*mg){ h = ph - 2*mg; w = h * r; }
   pdf.addImage(lienzo.toDataURL("image/jpeg",0.92), "JPEG", (pw-w)/2, (ph-h)/2, w, h);
 }
-function nombreActual(){ return nombreVista ?? $("nombre").value; }
+function nombreActual(){ return entradaActual().nombre; }
 function faltaNombre(){
   if(nombreActual().trim()) return false;
   aviso("✏️ Escribe primero el nombre del estudiante"); $("nombre").focus(); return true;
@@ -467,7 +547,9 @@ function pintarChips(){
   $("conteo").textContent = ns.length ? `${ns.length} estudiante${ns.length>1?"s":""} en la lista. Toca un nombre para verlo.` : "Toca un nombre para verlo en el diploma.";
   ns.forEach(n=>{
     const b = document.createElement("button");
-    b.className = "chip" + (n===nombreVista ? " activo" : ""); b.textContent = n;
+    const e = parsearLinea(n);
+    b.className = "chip" + (n===nombreVista ? " activo" : "");
+    b.textContent = e.nombre; if(e.doc) b.title = formatoDoc(e);
     b.onclick = ()=>{ nombreVista = (nombreVista===n) ? null : n; pintarChips(); pintarLetras(); dibujar(); };
     cont.appendChild(b);
   });
@@ -477,12 +559,12 @@ $("btnLote").onclick = async ()=>{
   if(!nombres.length){ aviso("✏️ Primero pega al menos un nombre"); $("lista").focus(); return; }
   const btn=$("btnLote"), barra=$("barra"), relleno=barra.firstElementChild;
   btn.disabled=true; barra.style.display="block"; relleno.style.width="0";
-  await dibujar(nombres[0]);
+  await dibujar(parsearLinea(nombres[0]));
   const pdf=nuevoPdf();
   for(let i=0;i<nombres.length;i++){
     btn.textContent=`Generando ${i+1} de ${nombres.length}…`;
     if(i>0) pdf.addPage();
-    await dibujar(nombres[i]); agregarPagina(pdf);
+    await dibujar(parsearLinea(nombres[i])); agregarPagina(pdf);
     relleno.style.width = ((i+1)/nombres.length*100)+"%";
     await new Promise(r=>setTimeout(r,0));
   }
@@ -495,7 +577,7 @@ $("btnLote").onclick = async ()=>{
 
 // ---------- Estilo del nombre ----------
 function textoMuestra(){
-  const n = (nombreVista ?? $("nombre").value).trim();
+  const n = (entradaActual().nombre||"").trim();
   return n ? n.split(" ").slice(0,2).join(" ") : "María José";
 }
 function pintarLetras(){
@@ -577,6 +659,8 @@ document.querySelectorAll("#filtros button").forEach(b=>{
 $("nombre").addEventListener("input", ()=>{ nombreVista = null; pintarChips(); pintarLetras(); redibujar(); guardar(); });
 ["lugar","dia","rector","director"].forEach(id=> $(id).addEventListener("input", ()=>{ redibujar(); guardar(); }));
 $("mes").addEventListener("change", ()=>{ dibujar(); guardar(); });
+$("docNum").addEventListener("input", ()=>{ nombreVista = null; pintarChips(); redibujar(); guardar(); });
+["docTipo","docNo"].forEach(id=> $(id).addEventListener("change", ()=>{ pintarChips(); dibujar(); guardar(); }));
 $("lista").addEventListener("input", ()=>{ pintarChips(); guardar(); });
 
 // ---------- Inicio ----------
@@ -584,6 +668,7 @@ $("lista").addEventListener("input", ()=>{ pintarChips(); guardar(); });
   pintarBotonTema();
   const d = leerGuardado();
   CAMPOS.forEach(k=>{ if(d[k]!==undefined) $(k).value = d[k]; });
+  if(d.docNo!==undefined) $("docNo").checked = d.docNo;
   if(d.estilo) estilo = {...ESTILO_INICIAL, ...d.estilo};
   actual = MODELOS.find(m=>m.id===d.modelo) || MODELOS[0];
   pintarGaleria(); pintarLetras(); pintarColores(); pintarControles(); pintarChips();
