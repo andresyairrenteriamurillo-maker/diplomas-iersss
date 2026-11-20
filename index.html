@@ -166,6 +166,11 @@
           <div><label for="docNum">Número <span style="font-weight:400;color:var(--suave)">(opcional)</span></label>
             <input type="text" id="docNum" inputmode="numeric" placeholder="1098765432" autocomplete="off"></div>
         </div>
+        <label for="docLetra">Letra del documento</label>
+        <select id="docLetra">
+          <option value="igual">La misma del nombre</option>
+          <option value="clasica">Clásica (más fácil de leer)</option>
+        </select>
         <label class="check"><input type="checkbox" id="docNo" checked> Escribir «No.» antes del número</label>
         <div class="botones">
           <button id="btnPng" title="Descargar imagen PNG">⬇ PNG</button>
@@ -248,23 +253,23 @@
 <script>
 // ---------- Modelos: [y de la línea, x inicio, x fin] en píxeles de cada plantilla ----------
 const MODELOS = [
-  {id:"preescolar-ninos-1",   grado:"Preescolar",   titulo:"Niños graduados 1", s:1,
+  {id:"preescolar-ninos-1", oro:13, parrafo:29,   grado:"Preescolar",   titulo:"Niños graduados 1", s:1,
    nombre:[424,363,1173], lugar:[782,727,1067], dia:[813,471,551], mes:[813,732,1010], rector:[899,385,646], director:[899,856,1140]},
-  {id:"preescolar-ninos-2",   grado:"Preescolar",   titulo:"Niños graduados 2", s:1,
+  {id:"preescolar-ninos-2", oro:16, parrafo:32,   grado:"Preescolar",   titulo:"Niños graduados 2", s:1,
    nombre:[432,369,1155], lugar:[787,742,1045], dia:[820,471,555], mes:[820,747,1001], rector:[905,362,655], director:[905,850,1143]},
-  {id:"preescolar-ninos-3",   grado:"Preescolar",   titulo:"Niños graduados 3", s:1,
+  {id:"preescolar-ninos-3", oro:16, parrafo:29,   grado:"Preescolar",   titulo:"Niños graduados 3", s:1,
    nombre:[444,416,1116], lugar:[784,734,1079], dia:[816,478,567], mes:[816,757,1008], rector:[889,432,668], director:[890,860,1132]},
-  {id:"preescolar-buho",      grado:"Preescolar",   titulo:"Búho", s:1,
+  {id:"preescolar-buho", oro:11, parrafo:27,      grado:"Preescolar",   titulo:"Búho", s:1,
    nombre:[408,326,1211], lugar:[753,736,1040], dia:[783,501,578], mes:[783,749,993], rector:[863,391,669], director:[863,855,1140]},
-  {id:"preescolar-guacamaya", grado:"Preescolar",   titulo:"Guacamaya", s:1,
+  {id:"preescolar-guacamaya", oro:12, parrafo:32, grado:"Preescolar",   titulo:"Guacamaya", s:1,
    nombre:[422,331,1203], lugar:[782,728,1070], dia:[809,486,565], mes:[810,740,974], rector:[871,415,658], director:[870,840,1111]},
-  {id:"preescolar-vertical",  grado:"Preescolar",   titulo:"Vertical", s:0.72,
+  {id:"preescolar-vertical", oro:9, parrafo:19,  grado:"Preescolar",   titulo:"Vertical", s:0.72,
    nombre:[530,124,648], lugar:[815,381,551], dia:[836,235,278], mes:[836,379,515], rector:[898,184,310], director:[898,434,594]},
-  {id:"quinto-ninos",         grado:"Grado Quinto", titulo:"Niños graduados", s:1,
+  {id:"quinto-ninos", oro:14, parrafo:28,         grado:"Grado Quinto", titulo:"Niños graduados", s:1,
    nombre:[416,324,1209], lugar:[766,750,1055], dia:[800,482,567], mes:[800,750,1003], rector:[885,372,658], director:[885,863,1155]},
-  {id:"quinto-selva",         grado:"Grado Quinto", titulo:"Selva", s:1,
+  {id:"quinto-selva", oro:12, parrafo:27,         grado:"Grado Quinto", titulo:"Selva", s:1,
    nombre:[407,326,1208], lugar:[754,737,1041], dia:[784,501,577], mes:[784,750,994], rector:[863,389,668], director:[863,855,1140]},
-  {id:"quinto-vertical",      grado:"Grado Quinto", titulo:"Vertical", s:0.72,
+  {id:"quinto-vertical", oro:9, parrafo:19,      grado:"Grado Quinto", titulo:"Vertical", s:0.72,
    nombre:[530,113,638], lugar:[816,343,554], dia:[837,193,239], mes:[837,347,493], rector:[901,160,294], director:[901,417,567]},
 ];
 
@@ -330,7 +335,7 @@ function formatoDoc(e){
 
 // ---------- Guardado ----------
 const CLAVE = "diplomas-iersss";
-const CAMPOS = ["nombre","docTipo","docNum","lugar","dia","mes","rector","director","lista"];
+const CAMPOS = ["nombre","docTipo","docNum","docLetra","lugar","dia","mes","rector","director","lista"];
 function leerGuardado(){ try{ return JSON.parse(localStorage.getItem(CLAVE) || "{}"); }catch(e){ return {}; } }
 function guardar(){
   try{
@@ -358,7 +363,7 @@ function cargarImagen(m){
   if(!imagenes[m.id]){
     imagenes[m.id] = new Promise((ok, mal)=>{
       const i = new Image();
-      i.onload = ()=>ok(i); i.onerror = mal;
+      i.onload = ()=>{ imagenes[m.id + "_img"] = i; ok(i); }; i.onerror = mal;
       i.src = "plantillas/" + m.id + ".jpg";
     });
   }
@@ -403,28 +408,39 @@ async function dibujar(entrada){
     const [y, x0, x1] = m.nombre;
     const max = (x1-x0) - 6;
     const familia = L.css + ", cursive";
-    const fDoc = "'Merriweather', Georgia, serif";
     const cx = (x0+x1)/2;
     const base = Math.round(L.t * s * estilo.tamano / 100);
-    const cy = y - Math.round(10*s) - estilo.altura*s;
-    let xNombre = cx, alinear = "center";
-    let docTam = 0, docX = 0, docY = 0, docAlinear = "center";
+    let cy = y - Math.round(10*s) - estilo.altura*s;
+    const xNombre = cx, alinear = "center";
+    let docTam = 0, docY = 0, docFuente = null;
 
     if(doc){
-      // nombre y documento en la misma línea, centrados como un grupo
-      docTam = Math.round(20*s);
-      const sep = Math.round(22*s);
-      let t = base, anchoN, anchoD;
-      for(;;){
-        ctx.font = `${L.peso||""} ${t}px ${familia}`.trim(); anchoN = ctx.measureText(n).width;
-        ctx.font = `italic ${docTam}px ${fDoc}`; anchoD = ctx.measureText(doc).width;
-        if(anchoN + sep + anchoD <= max || t <= 10) break;
-        t -= 1; if(docTam > 12*s && t < base*0.7) docTam -= 0.5;
+      // El nombre se achica un poco y sube apenas para que sus colas no tapen el documento.
+      cy = y - Math.round(12*s) - estilo.altura*s;
+      ajustarFuente(n, max, Math.round(base*0.85), familia, L.peso);
+      const fuenteNombre = ctx.font;
+      // Documento debajo de la línea azul y antes del párrafo.
+      const clasica = $("docLetra").value === "clasica";
+      docFuente = clasica ? ["700", "'Cinzel', serif"] : [L.peso||"", familia];
+      const arriba = y + Math.round(3*s), abajo = y + m.parrafo - Math.round(1*s);
+      const banda = abajo - arriba;
+      let t = Math.round(banda * 2), met, asc, desc;
+      do{
+        ctx.font = `${docFuente[0]} ${t}px ${docFuente[1]}`.trim();
+        met = ctx.measureText(doc);
+        asc = met.actualBoundingBoxAscent||t*.7; desc = met.actualBoundingBoxDescent||t*.2;
+        if(asc + desc <= banda && met.width <= max*0.85) break;
+        t--;
+      }while(t > 8);
+      docTam = t;
+      docY = arriba + (banda - asc - desc)/2 + asc;
+      // Interrumpir la línea dorada solo detrás del documento
+      const pad = Math.round(16*s), xa = Math.round(cx - met.width/2 - pad), ancho = Math.round(met.width + 2*pad);
+      const img0 = imagenes[m.id + "_img"];
+      for(let r = m.oro - 3; r <= m.oro + 3; r++){
+        ctx.drawImage(img0, xa, y + 5, ancho, 1, xa, y + r, ancho, 1);
       }
-      ctx.font = `${L.peso||""} ${t}px ${familia}`.trim();
-      const inicio = cx - (anchoN + sep + anchoD)/2;
-      xNombre = inicio; alinear = "left";
-      docX = inicio + anchoN + sep; docY = cy; docAlinear = "left";
+      ctx.font = fuenteNombre;
     }else{
       ajustarFuente(n, max, base, familia, L.peso);
     }
@@ -444,9 +460,13 @@ async function dibujar(entrada){
     ctx.restore();
 
     if(doc){
-      ctx.font = `italic ${docTam}px ${fDoc}`;
-      ctx.textAlign = docAlinear; ctx.fillStyle = AZUL;
-      ctx.fillText(doc, docX, docY);
+      ctx.font = `${docFuente[0]} ${docTam}px ${docFuente[1]}`.trim();
+      ctx.textAlign = "center"; ctx.fillStyle = estilo.color;
+      if($("docLetra").value !== "clasica"){ // engrosa un poco el trazo de las letras finas
+        ctx.strokeStyle = estilo.color; ctx.lineWidth = Math.max(0.6, docTam*0.035); ctx.lineJoin = "round";
+        ctx.strokeText(doc, cx, docY);
+      }
+      ctx.fillText(doc, cx, docY);
     }
   }
 
@@ -660,7 +680,7 @@ $("nombre").addEventListener("input", ()=>{ nombreVista = null; pintarChips(); p
 ["lugar","dia","rector","director"].forEach(id=> $(id).addEventListener("input", ()=>{ redibujar(); guardar(); }));
 $("mes").addEventListener("change", ()=>{ dibujar(); guardar(); });
 $("docNum").addEventListener("input", ()=>{ nombreVista = null; pintarChips(); redibujar(); guardar(); });
-["docTipo","docNo"].forEach(id=> $(id).addEventListener("change", ()=>{ pintarChips(); dibujar(); guardar(); }));
+["docTipo","docNo","docLetra"].forEach(id=> $(id).addEventListener("change", ()=>{ pintarChips(); dibujar(); guardar(); }));
 $("lista").addEventListener("input", ()=>{ pintarChips(); guardar(); });
 
 // ---------- Inicio ----------

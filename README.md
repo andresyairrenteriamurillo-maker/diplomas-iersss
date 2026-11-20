@@ -8,4 +8,4 @@ Página para llenar los diplomas de Preescolar y Grado Quinto con el nombre de c
 
 Los nombres no se envían a ningún servidor: todo se hace en el navegador de quien usa la página.
 
-Permite poner el tipo y número de documento al lado del nombre. También tiene 13 tipos de letra, colores, tamaño y posición del nombre, borde dorado, sombra, modo noche y vista ampliada.
+Permite poner el tipo y número de documento debajo de la línea del nombre. También tiene 13 tipos de letra, colores, tamaño y posición del nombre, borde dorado, sombra, modo noche y vista ampliada.
