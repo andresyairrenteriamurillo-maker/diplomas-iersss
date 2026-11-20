@@ -7,3 +7,5 @@ Página para llenar los diplomas de Preescolar y Grado Quinto con el nombre de c
 3. Descarga en PNG o PDF, imprime, o genera un solo PDF con todo el curso.
 
 Los nombres no se envían a ningún servidor: todo se hace en el navegador de quien usa la página.
+
+También tiene 13 tipos de letra, colores, tamaño y posición del nombre, borde dorado, sombra, modo noche y vista ampliada.

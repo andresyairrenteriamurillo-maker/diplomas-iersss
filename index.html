@@ -4,56 +4,136 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Diplomas · I.E.R. Santiago de la Selva</title>
+<script>
+  // Aplica el tema antes de pintar para evitar parpadeo
+  (function(){try{var t=localStorage.getItem("diplomas-tema");if(!t)t=matchMedia("(prefers-color-scheme: dark)").matches?"oscuro":"claro";document.documentElement.dataset.tema=t;}catch(e){}})();
+</script>
 <script src="lib/jspdf.umd.min.js"></script>
 <style>
-  @font-face{font-family:'Great Vibes';font-weight:400;src:url(fuentes/great-vibes.woff2) format('woff2')}
+  @font-face{font-family:'Great Vibes';src:url(fuentes/great-vibes.woff2) format('woff2')}
+  @font-face{font-family:'Alex Brush';src:url(fuentes/alex-brush.woff2) format('woff2')}
+  @font-face{font-family:'Allura';src:url(fuentes/allura.woff2) format('woff2')}
+  @font-face{font-family:'Parisienne';src:url(fuentes/parisienne.woff2) format('woff2')}
+  @font-face{font-family:'Sacramento';src:url(fuentes/sacramento.woff2) format('woff2')}
+  @font-face{font-family:'Dancing Script';font-weight:700;src:url(fuentes/dancing-script.woff2) format('woff2')}
+  @font-face{font-family:'Satisfy';src:url(fuentes/satisfy.woff2) format('woff2')}
+  @font-face{font-family:'Pacifico';src:url(fuentes/pacifico.woff2) format('woff2')}
+  @font-face{font-family:'Lobster';src:url(fuentes/lobster.woff2) format('woff2')}
+  @font-face{font-family:'Playfair Display';font-weight:700;src:url(fuentes/playfair-bold.woff2) format('woff2')}
+  @font-face{font-family:'Cinzel';font-weight:700;src:url(fuentes/cinzel.woff2) format('woff2')}
+  @font-face{font-family:'Cormorant Garamond';font-style:italic;font-weight:700;src:url(fuentes/cormorant-garamond.woff2) format('woff2')}
+  @font-face{font-family:'Montserrat';font-weight:800;src:url(fuentes/montserrat.woff2) format('woff2')}
   @font-face{font-family:'Merriweather';font-style:italic;font-weight:400;src:url(fuentes/merriweather-italic.woff2) format('woff2')}
   @font-face{font-family:'Merriweather';font-weight:700;src:url(fuentes/merriweather-bold.woff2) format('woff2')}
-  @font-face{font-family:'Playfair Display';font-weight:700;src:url(fuentes/playfair-bold.woff2) format('woff2')}
-  :root{--azul:#1d3f8f;--azul-osc:#132a63;--oro:#c9961a;--fondo:#eef2f8;--texto:#1f2937;--borde:#d5dce8}
+
+  :root{
+    --azul:#1d3f8f;--azul-osc:#132a63;--oro:#c9961a;
+    --fondo:#eef2f8;--panel:#ffffff;--texto:#1f2937;--suave:#6b7280;--borde:#d5dce8;
+    --campo:#ffffff;--acento:#1d3f8f;--hover:#f1f5fd;--tarjeta:#f8fafc;--sombra:0 6px 24px rgba(0,0,0,.18);
+  }
+  [data-tema="oscuro"]{
+    --fondo:#0b1220;--panel:#121b2e;--texto:#e5e9f2;--suave:#94a3b8;--borde:#26324a;
+    --campo:#0e1626;--acento:#8fb0ff;--hover:#1a2640;--tarjeta:#f4f1e8;--sombra:0 8px 30px rgba(0,0,0,.6);
+  }
   *{box-sizing:border-box}
-  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--fondo);color:var(--texto)}
-  header{background:var(--azul);color:#fff;padding:14px 20px;border-bottom:4px solid var(--oro)}
+  html{color-scheme:light}
+  [data-tema="oscuro"]{color-scheme:dark}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--fondo);color:var(--texto);transition:background .3s,color .3s}
+  header{background:linear-gradient(90deg,var(--azul-osc),var(--azul));color:#fff;padding:14px 20px;border-bottom:4px solid var(--oro);display:flex;align-items:center;gap:16px}
+  header .titulo{flex:1}
   header h1{margin:0;font-size:1.25rem}
   header p{margin:4px 0 0;opacity:.85;font-size:.9rem}
+  .tema{width:auto;margin:0;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:999px;padding:8px 14px;display:flex;align-items:center;gap:8px;white-space:nowrap}
+  .tema:hover{background:rgba(255,255,255,.25)}
   .contenedor{max-width:1500px;margin:auto;padding:20px}
-  main{display:grid;grid-template-columns:340px 1fr;gap:20px}
-  @media (max-width:900px){main{grid-template-columns:1fr}}
-  .panel{background:#fff;border:1px solid var(--borde);border-radius:10px;padding:16px}
-  .panel h2{font-size:1rem;margin:0 0 10px;color:var(--azul-osc)}
+  main{display:grid;grid-template-columns:380px 1fr;gap:20px}
+  @media (max-width:950px){main{grid-template-columns:1fr} header p{display:none}}
+  .panel{background:var(--panel);border:1px solid var(--borde);border-radius:12px;padding:16px;transition:background .3s,border-color .3s}
+  .panel h2{font-size:1rem;margin:0 0 10px;color:var(--acento);display:flex;align-items:center;gap:8px}
+  .panel h2 .n{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--oro);color:#fff;font-size:.8rem}
   .panel+.panel{margin-top:16px}
   .modelos{margin-bottom:20px}
   .filtros{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-  .filtros button{width:auto;margin:0;padding:7px 14px;border-radius:999px;background:#fff;color:var(--azul);border:1px solid var(--azul)}
-  .filtros button.activo{background:var(--azul);color:#fff}
-  .galeria{display:flex;gap:12px;overflow-x:auto;padding-bottom:6px}
-  .modelo{flex:0 0 auto;border:3px solid transparent;border-radius:8px;padding:0;background:none;cursor:pointer;text-align:center;width:auto;margin:0;color:var(--texto);font-weight:600}
-  .modelo:hover{background:none;border-color:#b9c6e4}
-  .modelo img{display:block;height:120px;width:auto;border-radius:5px}
+  .filtros button{width:auto;margin:0;padding:7px 14px;border-radius:999px;background:transparent;color:var(--acento);border:1px solid var(--acento)}
+  .filtros button.activo{background:var(--azul);border-color:var(--azul);color:#fff}
+  .galeria{display:flex;gap:12px;overflow-x:auto;padding:4px 2px 8px;scroll-behavior:smooth}
+  .modelo{flex:0 0 auto;border:3px solid transparent;border-radius:10px;padding:0;background:none;cursor:pointer;text-align:center;width:auto;margin:0;color:var(--texto);font-weight:600;transition:transform .15s,border-color .15s}
+  .modelo:hover{background:none;transform:translateY(-3px);border-color:var(--borde)}
+  .modelo img{display:block;height:120px;width:auto;border-radius:6px}
   .modelo span{display:block;font-size:.78rem;padding:4px 2px}
-  .modelo.activo{border-color:var(--oro);background:#fff8e6}
-  label{display:block;font-size:.85rem;font-weight:600;margin:10px 0 4px}
-  input[type=text],select,textarea{width:100%;padding:9px 10px;border:1px solid var(--borde);border-radius:7px;font:inherit;font-size:.95rem}
-  textarea{min-height:150px;resize:vertical}
-  input:focus,select:focus,textarea:focus{outline:2px solid var(--azul);border-color:transparent}
+  .modelo.activo{border-color:var(--oro);background:rgba(201,150,26,.12)}
+  label{display:block;font-size:.85rem;font-weight:600;margin:12px 0 5px}
+  input[type=text],select,textarea{width:100%;padding:9px 10px;border:1px solid var(--borde);border-radius:8px;font:inherit;font-size:.95rem;background:var(--campo);color:var(--texto)}
+  textarea{min-height:130px;resize:vertical}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--acento);border-color:transparent}
   .fila{display:grid;grid-template-columns:1fr 2fr;gap:8px}
-  .check{display:flex;align-items:center;gap:8px;font-weight:400;margin-top:10px}
-  button{width:100%;margin-top:10px;padding:10px;border:0;border-radius:7px;font:inherit;font-weight:600;cursor:pointer;background:var(--azul);color:#fff}
+  .check{display:flex;align-items:center;gap:8px;font-weight:400;margin-top:10px;cursor:pointer}
+  button{width:100%;margin-top:10px;padding:10px;border:0;border-radius:8px;font:inherit;font-weight:600;cursor:pointer;background:var(--azul);color:#fff;transition:background .15s,transform .1s}
   button:hover{background:var(--azul-osc)}
-  button.sec{background:#fff;color:var(--azul);border:1px solid var(--azul)}
-  button.sec:hover{background:#f1f5fd}
+  button:active{transform:scale(.98)}
+  button.sec{background:transparent;color:var(--acento);border:1px solid var(--acento)}
+  button.sec:hover{background:var(--hover)}
   button:disabled{opacity:.6;cursor:wait}
-  .nota{font-size:.8rem;color:#6b7280;margin:6px 0 0}
+  .botones{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .botones button{margin-top:10px;padding:10px 6px;font-size:.88rem}
+  .nota{font-size:.8rem;color:var(--suave);margin:6px 0 0}
+
+  /* Selector de letras */
+  .letras{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:300px;overflow-y:auto;padding:2px}
+  .letra{margin:0;padding:8px 6px 6px;background:var(--tarjeta);color:#14306e;border:2px solid transparent;border-radius:8px;text-align:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  .letra:hover{background:var(--tarjeta);border-color:var(--borde)}
+  .letra.activo{border-color:var(--oro);box-shadow:0 0 0 2px rgba(201,150,26,.3)}
+  .letra .muestra{display:block;font-size:1.35rem;line-height:1.5;overflow:hidden;text-overflow:ellipsis}
+  .letra small{display:block;font:600 .68rem system-ui,sans-serif;color:#6b7280;margin-top:2px}
+
+  /* Colores */
+  .colores{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .color{width:34px;height:34px;margin:0;padding:0;border-radius:50%;border:3px solid var(--panel);box-shadow:0 0 0 1px var(--borde)}
+  .color:hover{transform:scale(1.1)}
+  .color.activo{box-shadow:0 0 0 3px var(--oro)}
+  .color-libre{position:relative;width:34px;height:34px;border-radius:50%;overflow:hidden;box-shadow:0 0 0 1px var(--borde);background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red)}
+  .color-libre input{position:absolute;inset:-6px;width:50px;height:50px;opacity:0;cursor:pointer}
+
+  /* Deslizadores */
+  .rango{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px}
+  .rango output{font-size:.8rem;color:var(--suave);min-width:44px;text-align:right}
+  input[type=range]{width:100%;accent-color:var(--oro)}
+
+  /* Lista del curso */
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;max-height:150px;overflow-y:auto}
+  .chip{width:auto;margin:0;padding:5px 10px;font-size:.8rem;font-weight:500;border-radius:999px;background:var(--hover);color:var(--texto);border:1px solid var(--borde)}
+  .chip:hover{background:var(--hover);border-color:var(--acento)}
+  .chip.activo{background:var(--azul);color:#fff;border-color:var(--azul)}
+  .barra{height:8px;border-radius:99px;background:var(--hover);overflow:hidden;margin-top:10px;display:none}
+  .barra div{height:100%;width:0;background:linear-gradient(90deg,var(--oro),#f0c75e);transition:width .15s}
+
+  /* Vista previa */
   .vista{position:sticky;top:20px;align-self:start;text-align:center}
-  canvas{max-width:100%;max-height:calc(100vh - 60px);width:auto;height:auto;display:inline-block;border-radius:6px;box-shadow:0 6px 24px rgba(0,0,0,.18);background:#fff}
-  #estado{font-size:.85rem;color:var(--azul);min-height:1.2em;margin-top:8px}
+  .marco{display:inline-block;position:relative;cursor:zoom-in}
+  #lienzo{max-width:100%;max-height:calc(100vh - 90px);width:auto;height:auto;display:block;border-radius:6px;box-shadow:var(--sombra);background:#fff;transition:transform .2s}
+  .marco:hover #lienzo{transform:scale(1.01)}
+  .pista{font-size:.8rem;color:var(--suave);margin-top:10px}
+  .zoom{position:fixed;inset:0;background:rgba(5,10,25,.88);display:none;align-items:center;justify-content:center;z-index:50;cursor:zoom-out;padding:20px}
+  .zoom.abierto{display:flex;animation:aparece .2s}
+  .zoom img{max-width:100%;max-height:100%;border-radius:6px;box-shadow:0 10px 50px rgba(0,0,0,.6)}
+  @keyframes aparece{from{opacity:0}to{opacity:1}}
+
+  /* Avisos */
+  .avisos{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;z-index:60;pointer-events:none}
+  .aviso{background:#14306e;color:#fff;padding:10px 18px;border-radius:999px;box-shadow:0 6px 20px rgba(0,0,0,.3);font-size:.9rem;animation:sube .25s;border:1px solid var(--oro)}
+  @keyframes sube{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  #confeti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:55;background:transparent!important;box-shadow:none!important;max-height:none;border-radius:0}
 </style>
 </head>
 <body>
 <header>
-  <h1>Generador de diplomas · I.E.R. Santiago de la Selva</h1>
-  <p>Escoge un modelo, escribe el nombre del estudiante y descarga el diploma listo para imprimir.</p>
+  <div class="titulo">
+    <h1>🎓 Generador de diplomas · I.E.R. Santiago de la Selva</h1>
+    <p>Escoge un modelo, escribe el nombre del estudiante y descarga el diploma listo para imprimir.</p>
+  </div>
+  <button class="tema" id="btnTema" title="Cambiar modo claro / noche"></button>
 </header>
+
 <div class="contenedor">
   <section class="panel modelos">
     <h2>Escoge el modelo</h2>
@@ -68,22 +148,40 @@
   <main>
     <div>
       <section class="panel">
-        <h2>1. Estudiante</h2>
+        <h2><span class="n">1</span> Estudiante</h2>
         <label for="nombre">Nombre completo</label>
         <input type="text" id="nombre" placeholder="Ej: María José Pérez Gómez" autocomplete="off">
-        <label for="fuente">Estilo de letra del nombre</label>
-        <select id="fuente">
-          <option value="script">Cursiva elegante</option>
-          <option value="serif">Mayúsculas clásicas</option>
-        </select>
-        <label class="check"><input type="checkbox" id="mayus"> Escribir el nombre en MAYÚSCULAS</label>
-        <button id="btnPng">Descargar imagen (PNG)</button>
-        <button id="btnPdf" class="sec">Descargar PDF</button>
-        <button id="btnPrint" class="sec">Imprimir</button>
+        <div class="botones">
+          <button id="btnPng" title="Descargar imagen PNG">⬇ PNG</button>
+          <button id="btnPdf" title="Descargar PDF">⬇ PDF</button>
+          <button id="btnPrint" class="sec" title="Imprimir">🖨 Imprimir</button>
+        </div>
       </section>
 
       <section class="panel">
-        <h2>2. Lugar, fecha y firmas <span style="font-weight:400;color:#6b7280">(opcional)</span></h2>
+        <h2><span class="n">2</span> Estilo del nombre</h2>
+        <label>Tipo de letra</label>
+        <div class="letras" id="letras"></div>
+
+        <label>Color</label>
+        <div class="colores" id="colores">
+          <label class="color-libre" title="Otro color"><input type="color" id="colorLibre" value="#14306e"></label>
+        </div>
+
+        <label for="tamano">Tamaño</label>
+        <div class="rango"><input type="range" id="tamano" min="60" max="130" value="100"><output id="tamanoTxt">100%</output></div>
+
+        <label for="altura">Subir o bajar el nombre</label>
+        <div class="rango"><input type="range" id="altura" min="-30" max="30" value="0"><output id="alturaTxt">0</output></div>
+
+        <label class="check"><input type="checkbox" id="mayus"> Escribir en MAYÚSCULAS</label>
+        <label class="check"><input type="checkbox" id="brillo"> Borde dorado alrededor del nombre</label>
+        <label class="check"><input type="checkbox" id="sombra"> Sombra suave</label>
+        <button id="btnReset" class="sec">↺ Volver al estilo original</button>
+      </section>
+
+      <section class="panel">
+        <h2><span class="n">3</span> Lugar, fecha y firmas <span style="font-weight:400;color:var(--suave);font-size:.85rem">(opcional)</span></h2>
         <label for="lugar">Se firma en</label>
         <input type="text" id="lugar" placeholder="Ej: Santiago de la Selva">
         <div class="fila">
@@ -97,32 +195,41 @@
             </select>
           </div>
         </div>
+        <button id="btnHoy" class="sec">📅 Poner la fecha de hoy</button>
         <label for="rector">Nombre del Rector(a)</label>
         <input type="text" id="rector" placeholder="En blanco para firmar a mano">
         <label for="director">Nombre del Director(a) de grupo</label>
         <input type="text" id="director" placeholder="En blanco para firmar a mano">
-        <p class="nota">Estos datos se guardan en este navegador para la próxima vez.</p>
+        <p class="nota">Todo se guarda en este navegador para la próxima vez.</p>
       </section>
 
       <section class="panel">
-        <h2>3. Todo el curso de una vez</h2>
+        <h2><span class="n">4</span> Todo el curso de una vez</h2>
         <label for="lista">Pega la lista de nombres (uno por línea)</label>
         <textarea id="lista" placeholder="Ana Lucía Torres&#10;Juan David Rojas&#10;..."></textarea>
-        <button id="btnLote">Generar un PDF con todos</button>
-        <p class="nota">Se usa el modelo que esté seleccionado arriba.</p>
-        <div id="estado"></div>
+        <p class="nota" id="conteo">Toca un nombre para verlo en el diploma.</p>
+        <div class="chips" id="chips"></div>
+        <button id="btnLote">📄 Generar un PDF con todos</button>
+        <div class="barra" id="barra"><div></div></div>
+        <p class="nota">Se usa el modelo y el estilo que tengas seleccionados.</p>
       </section>
     </div>
 
     <div class="vista">
-      <canvas id="lienzo" width="1536" height="1024"></canvas>
+      <div class="marco" id="marco" title="Clic para ver en grande">
+        <canvas id="lienzo" width="1536" height="1024"></canvas>
+      </div>
+      <div class="pista">🔍 Haz clic en el diploma para verlo en grande</div>
     </div>
   </main>
 </div>
 
+<div class="zoom" id="zoom"><img id="zoomImg" alt="Diploma ampliado"></div>
+<canvas id="confeti"></canvas>
+<div class="avisos" id="avisos"></div>
+
 <script>
-// Cada línea: [y de la línea, x inicio, x fin] en píxeles de la plantilla.
-// s = escala de letra (los modelos verticales tienen la letra más pequeña).
+// ---------- Modelos: [y de la línea, x inicio, x fin] en píxeles de cada plantilla ----------
 const MODELOS = [
   {id:"preescolar-ninos-1",   grado:"Preescolar",   titulo:"Niños graduados 1", s:1,
    nombre:[424,363,1173], lugar:[782,727,1067], dia:[813,471,551], mes:[813,732,1010], rector:[899,385,646], director:[899,856,1140]},
@@ -144,12 +251,62 @@ const MODELOS = [
    nombre:[530,113,638], lugar:[816,343,554], dia:[837,193,239], mes:[837,347,493], rector:[901,160,294], director:[901,417,567]},
 ];
 
+// ---------- Tipos de letra: t = tamaño base en un diploma horizontal ----------
+const LETRAS = [
+  {id:"greatvibes", nombre:"Great Vibes",       css:"'Great Vibes'",              t:70},
+  {id:"alexbrush",  nombre:"Alex Brush",        css:"'Alex Brush'",               t:72},
+  {id:"allura",     nombre:"Allura",            css:"'Allura'",                   t:74},
+  {id:"parisienne", nombre:"Parisienne",        css:"'Parisienne'",               t:62},
+  {id:"sacramento", nombre:"Sacramento",        css:"'Sacramento'",               t:80},
+  {id:"dancing",    nombre:"Dancing Script",    css:"'Dancing Script'",  peso:"700", t:62},
+  {id:"satisfy",    nombre:"Satisfy",           css:"'Satisfy'",                  t:60},
+  {id:"pacifico",   nombre:"Pacifico",          css:"'Pacifico'",                 t:50},
+  {id:"lobster",    nombre:"Lobster",           css:"'Lobster'",                  t:60},
+  {id:"cormorant",  nombre:"Cormorant cursiva", css:"'Cormorant Garamond'", peso:"italic 700", t:62},
+  {id:"playfair",   nombre:"Playfair clásica",  css:"'Playfair Display'", peso:"700", t:50},
+  {id:"cinzel",     nombre:"Cinzel romana",     css:"'Cinzel'",          peso:"700", t:46},
+  {id:"montserrat", nombre:"Montserrat moderna",css:"'Montserrat'",      peso:"800", t:44},
+];
+
+const COLORES = [
+  {n:"Azul",   c:"#14306e"}, {n:"Dorado", c:"#a8780c"}, {n:"Negro", c:"#111111"},
+  {n:"Vino",   c:"#7a1c2e"}, {n:"Verde",  c:"#1f5e2e"}, {n:"Morado", c:"#4b2a7a"},
+];
+
+const ESTILO_INICIAL = {letra:"greatvibes", color:"#14306e", tamano:100, altura:0, mayus:false, brillo:false, sombra:false};
 const AZUL = "#14306e";
 const $ = id => document.getElementById(id);
 const lienzo = $("lienzo"), ctx = lienzo.getContext("2d");
 const imagenes = {};
 let actual = MODELOS[0];
+let estilo = {...ESTILO_INICIAL};
+let nombreVista = null;   // nombre de la lista que se está mostrando
 
+// ---------- Guardado ----------
+const CLAVE = "diplomas-iersss";
+const CAMPOS = ["nombre","lugar","dia","mes","rector","director","lista"];
+function leerGuardado(){ try{ return JSON.parse(localStorage.getItem(CLAVE) || "{}"); }catch(e){ return {}; } }
+function guardar(){
+  try{
+    const d = {modelo: actual.id, estilo};
+    CAMPOS.forEach(k=> d[k] = $(k).value);
+    localStorage.setItem(CLAVE, JSON.stringify(d));
+  }catch(e){}
+}
+
+// ---------- Tema claro / noche ----------
+function pintarBotonTema(){
+  const oscuro = document.documentElement.dataset.tema === "oscuro";
+  $("btnTema").innerHTML = oscuro ? "☀️ <span>Modo claro</span>" : "🌙 <span>Modo noche</span>";
+}
+$("btnTema").onclick = ()=>{
+  const nuevo = document.documentElement.dataset.tema === "oscuro" ? "claro" : "oscuro";
+  document.documentElement.dataset.tema = nuevo;
+  try{ localStorage.setItem("diplomas-tema", nuevo); }catch(e){}
+  pintarBotonTema();
+};
+
+// ---------- Dibujo ----------
 function cargarImagen(m){
   if(!imagenes[m.id]){
     imagenes[m.id] = new Promise((ok, mal)=>{
@@ -161,30 +318,22 @@ function cargarImagen(m){
   return imagenes[m.id];
 }
 
-const CAMPOS = ["lugar","dia","mes","rector","director","fuente","mayus","lista"];
-const CLAVE = "diplomas-iersss";
-function leerGuardado(){ try{ return JSON.parse(localStorage.getItem(CLAVE) || "{}"); }catch(e){ return {}; } }
-function guardar(){
-  try{
-    const d = {modelo: actual.id};
-    CAMPOS.forEach(k=>{const el=$(k); d[k]=el.type==="checkbox"?el.checked:el.value;});
-    localStorage.setItem(CLAVE, JSON.stringify(d));
-  }catch(e){}
-}
-
-function escribir(texto, linea, subir, familia, tamano, estilo){
-  if(!texto || !linea) return;
-  const [y, x0, x1] = linea;
-  const max = (x1 - x0) - 6;
+function ajustarFuente(texto, max, tamano, familia, peso){
   let t = tamano;
   do{
-    ctx.font = `${estilo||""} ${t}px ${familia}`.trim();
+    ctx.font = `${peso||""} ${t}px ${familia}`.trim();
     if(ctx.measureText(texto).width <= max) break;
     t -= 1;
   }while(t > 8);
-  ctx.textAlign = "center";
-  ctx.textBaseline = "alphabetic";
-  ctx.fillText(texto, (x0 + x1) / 2, y - subir);
+  return t;
+}
+
+function escribir(texto, linea, subir, familia, tamano, peso){
+  if(!texto || !linea) return;
+  const [y, x0, x1] = linea;
+  ajustarFuente(texto, (x1-x0)-6, tamano, familia, peso);
+  ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+  ctx.fillText(texto, (x0+x1)/2, y - subir);
 }
 
 async function dibujar(nombre){
@@ -195,16 +344,34 @@ async function dibujar(nombre){
   }
   ctx.clearRect(0,0,lienzo.width,lienzo.height);
   ctx.drawImage(img, 0, 0);
-  ctx.fillStyle = AZUL;
   const s = m.s;
 
-  let n = (nombre ?? $("nombre").value).trim().replace(/\s+/g," ");
-  if($("mayus").checked) n = n.toLocaleUpperCase("es");
-  if($("fuente").value === "script"){
-    escribir(n, m.nombre, Math.round(10*s), "'Great Vibes', cursive", Math.round(70*s));
-  }else{
-    escribir(n, m.nombre, Math.round(10*s), "'Playfair Display', Georgia, serif", Math.round(50*s), "700");
+  // Nombre del estudiante
+  let n = (nombre ?? nombreVista ?? $("nombre").value).trim().replace(/\s+/g," ");
+  if(estilo.mayus) n = n.toLocaleUpperCase("es");
+  if(n){
+    const L = LETRAS.find(l=>l.id===estilo.letra) || LETRAS[0];
+    const [y, x0, x1] = m.nombre;
+    const base = Math.round(L.t * s * estilo.tamano / 100);
+    ajustarFuente(n, (x1-x0)-6, base, L.css + ", cursive", L.peso);
+    const cx = (x0+x1)/2, cy = y - Math.round(10*s) - estilo.altura*s;
+    ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+    ctx.save();
+    if(estilo.sombra){ ctx.shadowColor = "rgba(0,0,0,.35)"; ctx.shadowBlur = 6*s; ctx.shadowOffsetX = 2*s; ctx.shadowOffsetY = 3*s; }
+    if(estilo.brillo){
+      ctx.lineJoin = "round"; ctx.strokeStyle = "#f3d27a"; ctx.lineWidth = 7*s;
+      ctx.strokeText(n, cx, cy);
+      ctx.shadowColor = "transparent";
+      ctx.strokeStyle = "#b8860b"; ctx.lineWidth = 2.5*s;
+      ctx.strokeText(n, cx, cy);
+    }
+    ctx.fillStyle = estilo.color;
+    ctx.fillText(n, cx, cy);
+    ctx.restore();
   }
+
+  // Lugar, fecha y firmas
+  ctx.fillStyle = AZUL;
   const serif = "'Merriweather', Georgia, serif";
   const sub = Math.max(4, Math.round(6*s));
   escribir($("lugar").value.trim(), m.lugar, sub, serif, Math.round(22*s), "italic");
@@ -214,6 +381,37 @@ async function dibujar(nombre){
   escribir($("director").value.trim(), m.director, sub+1, serif, Math.round(19*s), "bold");
 }
 
+let pendiente = false;
+function redibujar(){ // agrupa cambios rápidos (deslizadores) en un solo cuadro
+  if(pendiente) return; pendiente = true;
+  requestAnimationFrame(()=>{ pendiente = false; dibujar(); });
+}
+
+// ---------- Avisos y confeti ----------
+function aviso(txt){
+  const d = document.createElement("div"); d.className = "aviso"; d.textContent = txt;
+  $("avisos").appendChild(d); setTimeout(()=>d.remove(), 2600);
+}
+function confeti(){
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const c = $("confeti"), g = c.getContext("2d");
+  c.width = innerWidth; c.height = innerHeight;
+  const cols = ["#c9961a","#f0c75e","#1d3f8f","#d62828","#fcd116","#2a9d8f"];
+  const ps = Array.from({length:140}, ()=>({
+    x: innerWidth/2 + (Math.random()-.5)*200, y: innerHeight*.35,
+    vx:(Math.random()-.5)*14, vy:-Math.random()*12-4, r:Math.random()*6+4,
+    a:Math.random()*6, va:(Math.random()-.5)*.3, c:cols[Math.floor(Math.random()*cols.length)]
+  }));
+  let f = 0;
+  (function paso(){
+    g.clearRect(0,0,c.width,c.height);
+    ps.forEach(p=>{ p.vy += .35; p.vx *= .99; p.x += p.vx; p.y += p.vy; p.a += p.va;
+      g.save(); g.translate(p.x,p.y); g.rotate(p.a); g.fillStyle=p.c; g.fillRect(-p.r/2,-p.r/4,p.r,p.r/2); g.restore(); });
+    if(++f < 140) requestAnimationFrame(paso); else g.clearRect(0,0,c.width,c.height);
+  })();
+}
+
+// ---------- Descargas ----------
 function nombreArchivo(n){
   const base = (n || "").trim().normalize("NFD").replace(/[̀-ͯ]/g,"")
     .replace(/[^A-Za-z0-9]+/g,"_").replace(/^_|_$/g,"");
@@ -235,74 +433,164 @@ function agregarPagina(pdf){
   if(h > ph - 2*mg){ h = ph - 2*mg; w = h * r; }
   pdf.addImage(lienzo.toDataURL("image/jpeg",0.92), "JPEG", (pw-w)/2, (ph-h)/2, w, h);
 }
+function nombreActual(){ return nombreVista ?? $("nombre").value; }
+function faltaNombre(){
+  if(nombreActual().trim()) return false;
+  aviso("✏️ Escribe primero el nombre del estudiante"); $("nombre").focus(); return true;
+}
 
-$("btnPng").onclick = async ()=>{ await dibujar(); descargar(lienzo.toDataURL("image/png"), nombreArchivo($("nombre").value)+".png"); };
+$("btnPng").onclick = async ()=>{
+  if(faltaNombre()) return;
+  await dibujar(); descargar(lienzo.toDataURL("image/png"), nombreArchivo(nombreActual())+".png");
+  aviso("✅ Imagen descargada"); confeti();
+};
 $("btnPdf").onclick = async ()=>{
-  await dibujar(); const pdf=nuevoPdf(); agregarPagina(pdf); pdf.save(nombreArchivo($("nombre").value)+".pdf");
+  if(faltaNombre()) return;
+  await dibujar(); const pdf=nuevoPdf(); agregarPagina(pdf); pdf.save(nombreArchivo(nombreActual())+".pdf");
+  aviso("✅ PDF descargado"); confeti();
 };
 $("btnPrint").onclick = async ()=>{
   const w = window.open("", "_blank");
-  if(!w){ alert("Permite las ventanas emergentes para imprimir."); return; }
+  if(!w){ aviso("⚠️ Permite las ventanas emergentes para imprimir"); return; }
   await dibujar();
   const url = lienzo.toDataURL("image/png");
   const orient = esVertical() ? "portrait" : "landscape";
   w.document.write(`<html><head><title>Diploma</title><style>@page{size:letter ${orient};margin:8mm}html,body{margin:0;height:100%}body{display:flex;align-items:center;justify-content:center}img{max-width:100%;max-height:100%}</style></head><body><img src="${url}" onload="setTimeout(()=>{print();},200)"></body></html>`);
   w.document.close();
 };
+
+// ---------- Lista del curso ----------
+function nombresLista(){ return $("lista").value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean); }
+function pintarChips(){
+  const ns = nombresLista(), cont = $("chips"); cont.innerHTML = "";
+  if(nombreVista && !ns.includes(nombreVista)) nombreVista = null;
+  $("conteo").textContent = ns.length ? `${ns.length} estudiante${ns.length>1?"s":""} en la lista. Toca un nombre para verlo.` : "Toca un nombre para verlo en el diploma.";
+  ns.forEach(n=>{
+    const b = document.createElement("button");
+    b.className = "chip" + (n===nombreVista ? " activo" : ""); b.textContent = n;
+    b.onclick = ()=>{ nombreVista = (nombreVista===n) ? null : n; pintarChips(); pintarLetras(); dibujar(); };
+    cont.appendChild(b);
+  });
+}
 $("btnLote").onclick = async ()=>{
-  const nombres = $("lista").value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-  if(!nombres.length){ $("estado").textContent="Primero pega al menos un nombre."; return; }
-  const btn=$("btnLote"); btn.disabled=true;
+  const nombres = nombresLista();
+  if(!nombres.length){ aviso("✏️ Primero pega al menos un nombre"); $("lista").focus(); return; }
+  const btn=$("btnLote"), barra=$("barra"), relleno=barra.firstElementChild;
+  btn.disabled=true; barra.style.display="block"; relleno.style.width="0";
   await dibujar(nombres[0]);
   const pdf=nuevoPdf();
   for(let i=0;i<nombres.length;i++){
-    $("estado").textContent=`Generando ${i+1} de ${nombres.length}…`;
+    btn.textContent=`Generando ${i+1} de ${nombres.length}…`;
     if(i>0) pdf.addPage();
     await dibujar(nombres[i]); agregarPagina(pdf);
+    relleno.style.width = ((i+1)/nombres.length*100)+"%";
     await new Promise(r=>setTimeout(r,0));
   }
   pdf.save(`Diplomas_${actual.grado.replace(/\s+/g,"_")}.pdf`);
-  $("estado").textContent=`Listo: ${nombres.length} diplomas en un solo PDF.`;
-  btn.disabled=false;
+  btn.textContent="📄 Generar un PDF con todos"; btn.disabled=false;
+  setTimeout(()=>barra.style.display="none", 1200);
+  aviso(`🎉 Listo: ${nombres.length} diplomas en un solo PDF`); confeti();
   dibujar();
 };
 
-// Galería de modelos
-function pintarGaleria(filtro){
+// ---------- Estilo del nombre ----------
+function textoMuestra(){
+  const n = (nombreVista ?? $("nombre").value).trim();
+  return n ? n.split(" ").slice(0,2).join(" ") : "María José";
+}
+function pintarLetras(){
+  const cont = $("letras"); cont.innerHTML = "";
+  const t = textoMuestra();
+  LETRAS.forEach(L=>{
+    const b = document.createElement("button");
+    b.className = "letra" + (L.id===estilo.letra ? " activo" : "");
+    const peso = L.peso || "";
+    b.innerHTML = `<span class="muestra" style="font:${peso} 1.35rem ${L.css}, cursive">${(estilo.mayus? t.toLocaleUpperCase("es") : t).replace(/</g,"&lt;")}</span><small>${L.nombre}</small>`;
+    b.onclick = ()=>{ estilo.letra = L.id; pintarLetras(); dibujar(); guardar(); };
+    cont.appendChild(b);
+  });
+}
+function pintarColores(){
+  const cont = $("colores");
+  cont.querySelectorAll(".color").forEach(x=>x.remove());
+  COLORES.forEach(C=>{
+    const b = document.createElement("button");
+    b.className = "color" + (C.c.toLowerCase()===estilo.color.toLowerCase() ? " activo" : "");
+    b.style.background = C.c; b.title = C.n;
+    b.onclick = ()=>{ estilo.color = C.c; pintarColores(); dibujar(); guardar(); };
+    cont.insertBefore(b, cont.lastElementChild);
+  });
+  const libre = cont.querySelector(".color-libre");
+  const esLibre = !COLORES.some(C=>C.c.toLowerCase()===estilo.color.toLowerCase());
+  libre.style.boxShadow = esLibre ? "0 0 0 3px var(--oro)" : "";
+}
+$("colorLibre").addEventListener("input", e=>{ estilo.color = e.target.value; pintarColores(); redibujar(); guardar(); });
+function pintarControles(){
+  $("tamano").value = estilo.tamano; $("tamanoTxt").textContent = estilo.tamano + "%";
+  $("altura").value = estilo.altura; $("alturaTxt").textContent = (estilo.altura>0?"+":"") + estilo.altura;
+  $("mayus").checked = estilo.mayus; $("brillo").checked = estilo.brillo; $("sombra").checked = estilo.sombra;
+}
+$("tamano").addEventListener("input", e=>{ estilo.tamano = +e.target.value; pintarControles(); redibujar(); guardar(); });
+$("altura").addEventListener("input", e=>{ estilo.altura = +e.target.value; pintarControles(); redibujar(); guardar(); });
+["mayus","brillo","sombra"].forEach(k=> $(k).addEventListener("change", e=>{
+  estilo[k] = e.target.checked; if(k==="mayus") pintarLetras(); dibujar(); guardar();
+}));
+$("btnReset").onclick = ()=>{
+  estilo = {...ESTILO_INICIAL}; pintarLetras(); pintarColores(); pintarControles(); dibujar(); guardar();
+  aviso("↺ Estilo original restablecido");
+};
+
+$("btnHoy").onclick = ()=>{
+  const h = new Date();
+  $("dia").value = h.getDate();
+  $("mes").value = $("mes").options[h.getMonth()+1].value;
+  dibujar(); guardar(); aviso("📅 Fecha de hoy puesta");
+};
+
+// ---------- Vista ampliada ----------
+$("marco").onclick = async ()=>{
+  await dibujar(); $("zoomImg").src = lienzo.toDataURL("image/jpeg", .92); $("zoom").classList.add("abierto");
+};
+$("zoom").onclick = ()=> $("zoom").classList.remove("abierto");
+document.addEventListener("keydown", e=>{ if(e.key==="Escape") $("zoom").classList.remove("abierto"); });
+
+// ---------- Galería de modelos ----------
+let filtro = "todos";
+function pintarGaleria(){
   const g = $("galeria"); g.innerHTML = "";
   MODELOS.filter(m => filtro==="todos" || m.grado===filtro).forEach(m=>{
     const b = document.createElement("button");
     b.className = "modelo" + (m===actual ? " activo" : "");
     b.innerHTML = `<img src="miniaturas/${m.id}.jpg" alt="${m.grado} - ${m.titulo}" loading="lazy"><span>${m.grado} · ${m.titulo}</span>`;
-    b.onclick = ()=>{ actual = m; guardar(); pintarGaleria(filtro); dibujar(); };
+    b.onclick = ()=>{ actual = m; guardar(); pintarGaleria(); dibujar(); aviso(`🖼 Modelo: ${m.grado} · ${m.titulo}`); };
     g.appendChild(b);
   });
 }
 document.querySelectorAll("#filtros button").forEach(b=>{
   b.onclick = ()=>{
     document.querySelectorAll("#filtros button").forEach(x=>x.classList.remove("activo"));
-    b.classList.add("activo"); pintarGaleria(b.dataset.g);
+    b.classList.add("activo"); filtro = b.dataset.g; pintarGaleria();
   };
 });
 
-["nombre","lugar","dia","mes","rector","director","fuente","mayus","lista"].forEach(id=>{
-  $(id).addEventListener("input", ()=>{ dibujar(); guardar(); });
-  $(id).addEventListener("change", ()=>{ dibujar(); guardar(); });
-});
+// ---------- Campos de texto ----------
+$("nombre").addEventListener("input", ()=>{ nombreVista = null; pintarChips(); pintarLetras(); redibujar(); guardar(); });
+["lugar","dia","rector","director"].forEach(id=> $(id).addEventListener("input", ()=>{ redibujar(); guardar(); }));
+$("mes").addEventListener("change", ()=>{ dibujar(); guardar(); });
+$("lista").addEventListener("input", ()=>{ pintarChips(); guardar(); });
 
+// ---------- Inicio ----------
 (async ()=>{
+  pintarBotonTema();
   const d = leerGuardado();
-  CAMPOS.forEach(k=>{ if(d[k]===undefined) return; const el=$(k); if(el.type==="checkbox") el.checked=d[k]; else el.value=d[k]; });
+  CAMPOS.forEach(k=>{ if(d[k]!==undefined) $(k).value = d[k]; });
+  if(d.estilo) estilo = {...ESTILO_INICIAL, ...d.estilo};
   actual = MODELOS.find(m=>m.id===d.modelo) || MODELOS[0];
-  pintarGaleria("todos");
-  try{
-    await Promise.all([
-      document.fonts.load("70px 'Great Vibes'"),
-      document.fonts.load("700 50px 'Playfair Display'"),
-      document.fonts.load("italic 22px 'Merriweather'"),
-      document.fonts.load("700 19px 'Merriweather'"),
-    ]);
-  }catch(e){}
+  pintarGaleria(); pintarLetras(); pintarColores(); pintarControles(); pintarChips();
+  const cargas = LETRAS.map(L=> document.fonts.load(`${L.peso||""} 40px ${L.css}`.trim()))
+    .concat([document.fonts.load("italic 22px 'Merriweather'"), document.fonts.load("700 19px 'Merriweather'")]);
+  dibujar();
+  try{ await Promise.all(cargas); }catch(e){}
   dibujar();
 })();
 </script>
