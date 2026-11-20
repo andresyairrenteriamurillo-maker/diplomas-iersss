@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diplomas · I.E.R. Santiago de la Selva</title>
+<script src="lib/jspdf.umd.min.js"></script>
+<style>
+  @font-face{font-family:'Great Vibes';font-weight:400;src:url(fuentes/great-vibes.woff2) format('woff2')}
+  @font-face{font-family:'Merriweather';font-style:italic;font-weight:400;src:url(fuentes/merriweather-italic.woff2) format('woff2')}
+  @font-face{font-family:'Merriweather';font-weight:700;src:url(fuentes/merriweather-bold.woff2) format('woff2')}
+  @font-face{font-family:'Playfair Display';font-weight:700;src:url(fuentes/playfair-bold.woff2) format('woff2')}
+  :root{--azul:#1d3f8f;--azul-osc:#132a63;--oro:#c9961a;--fondo:#eef2f8;--texto:#1f2937;--borde:#d5dce8}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--fondo);color:var(--texto)}
+  header{background:var(--azul);color:#fff;padding:14px 20px;border-bottom:4px solid var(--oro)}
+  header h1{margin:0;font-size:1.25rem}
+  header p{margin:4px 0 0;opacity:.85;font-size:.9rem}
+  .contenedor{max-width:1500px;margin:auto;padding:20px}
+  main{display:grid;grid-template-columns:340px 1fr;gap:20px}
+  @media (max-width:900px){main{grid-template-columns:1fr}}
+  .panel{background:#fff;border:1px solid var(--borde);border-radius:10px;padding:16px}
+  .panel h2{font-size:1rem;margin:0 0 10px;color:var(--azul-osc)}
+  .panel+.panel{margin-top:16px}
+  .modelos{margin-bottom:20px}
+  .filtros{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .filtros button{width:auto;margin:0;padding:7px 14px;border-radius:999px;background:#fff;color:var(--azul);border:1px solid var(--azul)}
+  .filtros button.activo{background:var(--azul);color:#fff}
+  .galeria{display:flex;gap:12px;overflow-x:auto;padding-bottom:6px}
+  .modelo{flex:0 0 auto;border:3px solid transparent;border-radius:8px;padding:0;background:none;cursor:pointer;text-align:center;width:auto;margin:0;color:var(--texto);font-weight:600}
+  .modelo:hover{background:none;border-color:#b9c6e4}
+  .modelo img{display:block;height:120px;width:auto;border-radius:5px}
+  .modelo span{display:block;font-size:.78rem;padding:4px 2px}
+  .modelo.activo{border-color:var(--oro);background:#fff8e6}
+  label{display:block;font-size:.85rem;font-weight:600;margin:10px 0 4px}
+  input[type=text],select,textarea{width:100%;padding:9px 10px;border:1px solid var(--borde);border-radius:7px;font:inherit;font-size:.95rem}
+  textarea{min-height:150px;resize:vertical}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--azul);border-color:transparent}
+  .fila{display:grid;grid-template-columns:1fr 2fr;gap:8px}
+  .check{display:flex;align-items:center;gap:8px;font-weight:400;margin-top:10px}
+  button{width:100%;margin-top:10px;padding:10px;border:0;border-radius:7px;font:inherit;font-weight:600;cursor:pointer;background:var(--azul);color:#fff}
+  button:hover{background:var(--azul-osc)}
+  button.sec{background:#fff;color:var(--azul);border:1px solid var(--azul)}
+  button.sec:hover{background:#f1f5fd}
+  button:disabled{opacity:.6;cursor:wait}
+  .nota{font-size:.8rem;color:#6b7280;margin:6px 0 0}
+  .vista{position:sticky;top:20px;align-self:start;text-align:center}
+  canvas{max-width:100%;max-height:calc(100vh - 60px);width:auto;height:auto;display:inline-block;border-radius:6px;box-shadow:0 6px 24px rgba(0,0,0,.18);background:#fff}
+  #estado{font-size:.85rem;color:var(--azul);min-height:1.2em;margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Generador de diplomas · I.E.R. Santiago de la Selva</h1>
+  <p>Escoge un modelo, escribe el nombre del estudiante y descarga el diploma listo para imprimir.</p>
+</header>
+<div class="contenedor">
+  <section class="panel modelos">
+    <h2>Escoge el modelo</h2>
+    <div class="filtros" id="filtros">
+      <button data-g="todos" class="activo">Todos</button>
+      <button data-g="Preescolar">Preescolar</button>
+      <button data-g="Grado Quinto">Grado Quinto</button>
+    </div>
+    <div class="galeria" id="galeria"></div>
+  </section>
+
+  <main>
+    <div>
+      <section class="panel">
+        <h2>1. Estudiante</h2>
+        <label for="nombre">Nombre completo</label>
+        <input type="text" id="nombre" placeholder="Ej: María José Pérez Gómez" autocomplete="off">
+        <label for="fuente">Estilo de letra del nombre</label>
+        <select id="fuente">
+          <option value="script">Cursiva elegante</option>
+          <option value="serif">Mayúsculas clásicas</option>
+        </select>
+        <label class="check"><input type="checkbox" id="mayus"> Escribir el nombre en MAYÚSCULAS</label>
+        <button id="btnPng">Descargar imagen (PNG)</button>
+        <button id="btnPdf" class="sec">Descargar PDF</button>
+        <button id="btnPrint" class="sec">Imprimir</button>
+      </section>
+
+      <section class="panel">
+        <h2>2. Lugar, fecha y firmas <span style="font-weight:400;color:#6b7280">(opcional)</span></h2>
+        <label for="lugar">Se firma en</label>
+        <input type="text" id="lugar" placeholder="Ej: Santiago de la Selva">
+        <div class="fila">
+          <div><label for="dia">Día</label><input type="text" id="dia" placeholder="28"></div>
+          <div><label for="mes">Mes</label>
+            <select id="mes">
+              <option value="">— vacío —</option>
+              <option>enero</option><option>febrero</option><option>marzo</option><option>abril</option>
+              <option>mayo</option><option>junio</option><option>julio</option><option>agosto</option>
+              <option>septiembre</option><option>octubre</option><option>noviembre</option><option>diciembre</option>
+            </select>
+          </div>
+        </div>
+        <label for="rector">Nombre del Rector(a)</label>
+        <input type="text" id="rector" placeholder="En blanco para firmar a mano">
+        <label for="director">Nombre del Director(a) de grupo</label>
+        <input type="text" id="director" placeholder="En blanco para firmar a mano">
+        <p class="nota">Estos datos se guardan en este navegador para la próxima vez.</p>
+      </section>
+
+      <section class="panel">
+        <h2>3. Todo el curso de una vez</h2>
+        <label for="lista">Pega la lista de nombres (uno por línea)</label>
+        <textarea id="lista" placeholder="Ana Lucía Torres&#10;Juan David Rojas&#10;..."></textarea>
+        <button id="btnLote">Generar un PDF con todos</button>
+        <p class="nota">Se usa el modelo que esté seleccionado arriba.</p>
+        <div id="estado"></div>
+      </section>
+    </div>
+
+    <div class="vista">
+      <canvas id="lienzo" width="1536" height="1024"></canvas>
+    </div>
+  </main>
+</div>
+
+<script>
+// Cada línea: [y de la línea, x inicio, x fin] en píxeles de la plantilla.
+// s = escala de letra (los modelos verticales tienen la letra más pequeña).
+const MODELOS = [
+  {id:"preescolar-ninos-1",   grado:"Preescolar",   titulo:"Niños graduados 1", s:1,
+   nombre:[424,363,1173], lugar:[782,727,1067], dia:[813,471,551], mes:[813,732,1010], rector:[899,385,646], director:[899,856,1140]},
+  {id:"preescolar-ninos-2",   grado:"Preescolar",   titulo:"Niños graduados 2", s:1,
+   nombre:[432,369,1155], lugar:[787,742,1045], dia:[820,471,555], mes:[820,747,1001], rector:[905,362,655], director:[905,850,1143]},
+  {id:"preescolar-ninos-3",   grado:"Preescolar",   titulo:"Niños graduados 3", s:1,
+   nombre:[444,416,1116], lugar:[784,734,1079], dia:[816,478,567], mes:[816,757,1008], rector:[889,432,668], director:[890,860,1132]},
+  {id:"preescolar-buho",      grado:"Preescolar",   titulo:"Búho", s:1,
+   nombre:[408,326,1211], lugar:[753,736,1040], dia:[783,501,578], mes:[783,749,993], rector:[863,391,669], director:[863,855,1140]},
+  {id:"preescolar-guacamaya", grado:"Preescolar",   titulo:"Guacamaya", s:1,
+   nombre:[422,331,1203], lugar:[782,728,1070], dia:[809,486,565], mes:[810,740,974], rector:[871,415,658], director:[870,840,1111]},
+  {id:"preescolar-vertical",  grado:"Preescolar",   titulo:"Vertical", s:0.72,
+   nombre:[530,124,648], lugar:[815,381,551], dia:[836,235,278], mes:[836,379,515], rector:[898,184,310], director:[898,434,594]},
+  {id:"quinto-ninos",         grado:"Grado Quinto", titulo:"Niños graduados", s:1,
+   nombre:[416,324,1209], lugar:[766,750,1055], dia:[800,482,567], mes:[800,750,1003], rector:[885,372,658], director:[885,863,1155]},
+  {id:"quinto-selva",         grado:"Grado Quinto", titulo:"Selva", s:1,
+   nombre:[407,326,1208], lugar:[754,737,1041], dia:[784,501,577], mes:[784,750,994], rector:[863,389,668], director:[863,855,1140]},
+  {id:"quinto-vertical",      grado:"Grado Quinto", titulo:"Vertical", s:0.72,
+   nombre:[530,113,638], lugar:[816,343,554], dia:[837,193,239], mes:[837,347,493], rector:[901,160,294], director:[901,417,567]},
+];
+
+const AZUL = "#14306e";
+const $ = id => document.getElementById(id);
+const lienzo = $("lienzo"), ctx = lienzo.getContext("2d");
+const imagenes = {};
+let actual = MODELOS[0];
+
+function cargarImagen(m){
+  if(!imagenes[m.id]){
+    imagenes[m.id] = new Promise((ok, mal)=>{
+      const i = new Image();
+      i.onload = ()=>ok(i); i.onerror = mal;
+      i.src = "plantillas/" + m.id + ".jpg";
+    });
+  }
+  return imagenes[m.id];
+}
+
+const CAMPOS = ["lugar","dia","mes","rector","director","fuente","mayus","lista"];
+const CLAVE = "diplomas-iersss";
+function leerGuardado(){ try{ return JSON.parse(localStorage.getItem(CLAVE) || "{}"); }catch(e){ return {}; } }
+function guardar(){
+  try{
+    const d = {modelo: actual.id};
+    CAMPOS.forEach(k=>{const el=$(k); d[k]=el.type==="checkbox"?el.checked:el.value;});
+    localStorage.setItem(CLAVE, JSON.stringify(d));
+  }catch(e){}
+}
+
+function escribir(texto, linea, subir, familia, tamano, estilo){
+  if(!texto || !linea) return;
+  const [y, x0, x1] = linea;
+  const max = (x1 - x0) - 6;
+  let t = tamano;
+  do{
+    ctx.font = `${estilo||""} ${t}px ${familia}`.trim();
+    if(ctx.measureText(texto).width <= max) break;
+    t -= 1;
+  }while(t > 8);
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText(texto, (x0 + x1) / 2, y - subir);
+}
+
+async function dibujar(nombre){
+  const m = actual;
+  const img = await cargarImagen(m);
+  if(lienzo.width !== img.naturalWidth || lienzo.height !== img.naturalHeight){
+    lienzo.width = img.naturalWidth; lienzo.height = img.naturalHeight;
+  }
+  ctx.clearRect(0,0,lienzo.width,lienzo.height);
+  ctx.drawImage(img, 0, 0);
+  ctx.fillStyle = AZUL;
+  const s = m.s;
+
+  let n = (nombre ?? $("nombre").value).trim().replace(/\s+/g," ");
+  if($("mayus").checked) n = n.toLocaleUpperCase("es");
+  if($("fuente").value === "script"){
+    escribir(n, m.nombre, Math.round(10*s), "'Great Vibes', cursive", Math.round(70*s));
+  }else{
+    escribir(n, m.nombre, Math.round(10*s), "'Playfair Display', Georgia, serif", Math.round(50*s), "700");
+  }
+  const serif = "'Merriweather', Georgia, serif";
+  const sub = Math.max(4, Math.round(6*s));
+  escribir($("lugar").value.trim(), m.lugar, sub, serif, Math.round(22*s), "italic");
+  escribir($("dia").value.trim(),   m.dia,   sub, serif, Math.round(22*s), "italic");
+  escribir($("mes").value,          m.mes,   sub, serif, Math.round(22*s), "italic");
+  escribir($("rector").value.trim(),   m.rector,   sub+1, serif, Math.round(19*s), "bold");
+  escribir($("director").value.trim(), m.director, sub+1, serif, Math.round(19*s), "bold");
+}
+
+function nombreArchivo(n){
+  const base = (n || "").trim().normalize("NFD").replace(/[̀-ͯ]/g,"")
+    .replace(/[^A-Za-z0-9]+/g,"_").replace(/^_|_$/g,"");
+  return "Diploma_" + (base || "sin_nombre");
+}
+function descargar(url, nombre){
+  const a=document.createElement("a"); a.href=url; a.download=nombre;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+function esVertical(){ return lienzo.height > lienzo.width; }
+function nuevoPdf(){
+  const { jsPDF } = window.jspdf;
+  return new jsPDF({orientation: esVertical() ? "portrait" : "landscape", unit:"mm", format:"letter"});
+}
+function agregarPagina(pdf){
+  const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight(), mg = 8;
+  const r = lienzo.width / lienzo.height;
+  let w = pw - 2*mg, h = w / r;
+  if(h > ph - 2*mg){ h = ph - 2*mg; w = h * r; }
+  pdf.addImage(lienzo.toDataURL("image/jpeg",0.92), "JPEG", (pw-w)/2, (ph-h)/2, w, h);
+}
+
+$("btnPng").onclick = async ()=>{ await dibujar(); descargar(lienzo.toDataURL("image/png"), nombreArchivo($("nombre").value)+".png"); };
+$("btnPdf").onclick = async ()=>{
+  await dibujar(); const pdf=nuevoPdf(); agregarPagina(pdf); pdf.save(nombreArchivo($("nombre").value)+".pdf");
+};
+$("btnPrint").onclick = async ()=>{
+  const w = window.open("", "_blank");
+  if(!w){ alert("Permite las ventanas emergentes para imprimir."); return; }
+  await dibujar();
+  const url = lienzo.toDataURL("image/png");
+  const orient = esVertical() ? "portrait" : "landscape";
+  w.document.write(`<html><head><title>Diploma</title><style>@page{size:letter ${orient};margin:8mm}html,body{margin:0;height:100%}body{display:flex;align-items:center;justify-content:center}img{max-width:100%;max-height:100%}</style></head><body><img src="${url}" onload="setTimeout(()=>{print();},200)"></body></html>`);
+  w.document.close();
+};
+$("btnLote").onclick = async ()=>{
+  const nombres = $("lista").value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  if(!nombres.length){ $("estado").textContent="Primero pega al menos un nombre."; return; }
+  const btn=$("btnLote"); btn.disabled=true;
+  await dibujar(nombres[0]);
+  const pdf=nuevoPdf();
+  for(let i=0;i<nombres.length;i++){
+    $("estado").textContent=`Generando ${i+1} de ${nombres.length}…`;
+    if(i>0) pdf.addPage();
+    await dibujar(nombres[i]); agregarPagina(pdf);
+    await new Promise(r=>setTimeout(r,0));
+  }
+  pdf.save(`Diplomas_${actual.grado.replace(/\s+/g,"_")}.pdf`);
+  $("estado").textContent=`Listo: ${nombres.length} diplomas en un solo PDF.`;
+  btn.disabled=false;
+  dibujar();
+};
+
+// Galería de modelos
+function pintarGaleria(filtro){
+  const g = $("galeria"); g.innerHTML = "";
+  MODELOS.filter(m => filtro==="todos" || m.grado===filtro).forEach(m=>{
+    const b = document.createElement("button");
+    b.className = "modelo" + (m===actual ? " activo" : "");
+    b.innerHTML = `<img src="miniaturas/${m.id}.jpg" alt="${m.grado} - ${m.titulo}" loading="lazy"><span>${m.grado} · ${m.titulo}</span>`;
+    b.onclick = ()=>{ actual = m; guardar(); pintarGaleria(filtro); dibujar(); };
+    g.appendChild(b);
+  });
+}
+document.querySelectorAll("#filtros button").forEach(b=>{
+  b.onclick = ()=>{
+    document.querySelectorAll("#filtros button").forEach(x=>x.classList.remove("activo"));
+    b.classList.add("activo"); pintarGaleria(b.dataset.g);
+  };
+});
+
+["nombre","lugar","dia","mes","rector","director","fuente","mayus","lista"].forEach(id=>{
+  $(id).addEventListener("input", ()=>{ dibujar(); guardar(); });
+  $(id).addEventListener("change", ()=>{ dibujar(); guardar(); });
+});
+
+(async ()=>{
+  const d = leerGuardado();
+  CAMPOS.forEach(k=>{ if(d[k]===undefined) return; const el=$(k); if(el.type==="checkbox") el.checked=d[k]; else el.value=d[k]; });
+  actual = MODELOS.find(m=>m.id===d.modelo) || MODELOS[0];
+  pintarGaleria("todos");
+  try{
+    await Promise.all([
+      document.fonts.load("70px 'Great Vibes'"),
+      document.fonts.load("700 50px 'Playfair Display'"),
+      document.fonts.load("italic 22px 'Merriweather'"),
+      document.fonts.load("700 19px 'Merriweather'"),
+    ]);
+  }catch(e){}
+  dibujar();
+})();
+</script>
+</body>
+</html>
