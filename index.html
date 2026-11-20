@@ -171,8 +171,8 @@
           <option value="igual">La misma del nombre</option>
           <option value="clasica">Clásica (más fácil de leer)</option>
         </select>
-        <label for="docAncho">Ancho del documento</label>
-        <div class="rango"><input type="range" id="docAncho" min="0" max="100" value="60"><output id="docAnchoTxt">60%</output></div>
+        <label for="docSep">Separación de las letras del documento</label>
+        <div class="rango"><input type="range" id="docSep" min="0" max="100" value="25"><output id="docSepTxt">25%</output></div>
         <label class="check"><input type="checkbox" id="docNo" checked> Escribir «No.» antes del número</label>
         <div class="botones">
           <button id="btnPng" title="Descargar imagen PNG">⬇ PNG</button>
@@ -337,7 +337,7 @@ function formatoDoc(e){
 
 // ---------- Guardado ----------
 const CLAVE = "diplomas-iersss";
-const CAMPOS = ["nombre","docTipo","docNum","docLetra","docAncho","lugar","dia","mes","rector","director","lista"];
+const CAMPOS = ["nombre","docTipo","docNum","docLetra","docSep","lugar","dia","mes","rector","director","lista"];
 function leerGuardado(){ try{ return JSON.parse(localStorage.getItem(CLAVE) || "{}"); }catch(e){ return {}; } }
 function guardar(){
   try{
@@ -438,7 +438,7 @@ async function dibujar(entrada){
       docY = arriba + (banda - asc - desc)/2 + asc;
       // Interrumpir la línea dorada solo detrás del documento
       const nLetras = [...doc].length;
-      const espPrev = Math.max(0, Math.min(t*0.9, (max*(+$("docAncho").value/100) - met.width) / Math.max(1, nLetras-1)));
+      const espPrev = t * 0.4 * (+$("docSep").value / 100);
       const anchoDoc = met.width + espPrev*(nLetras-1);
       const pad = Math.round(16*s), xa = Math.round(cx - anchoDoc/2 - pad), ancho = Math.round(anchoDoc + 2*pad);
       const img0 = imagenes[m.id + "_img"];
@@ -472,8 +472,7 @@ async function dibujar(entrada){
       // Separación entre letras: el documento ocupa el % elegido del ancho de la línea
       const letras = [...doc];
       const natural = ctx.measureText(doc).width;
-      const objetivo = max * (+$("docAncho").value / 100);
-      const esp = Math.max(0, Math.min(docTam*0.9, (objetivo - natural) / Math.max(1, letras.length - 1)));
+      const esp = docTam * 0.4 * (+$("docSep").value / 100);
       let x = cx - (natural + esp*(letras.length-1)) / 2;
       // se mide por pares para conservar el espaciado propio de la letra
       for(let i = 0; i < letras.length; i++){
@@ -695,7 +694,7 @@ document.querySelectorAll("#filtros button").forEach(b=>{
 $("nombre").addEventListener("input", ()=>{ nombreVista = null; pintarChips(); pintarLetras(); redibujar(); guardar(); });
 ["lugar","dia","rector","director"].forEach(id=> $(id).addEventListener("input", ()=>{ redibujar(); guardar(); }));
 $("mes").addEventListener("change", ()=>{ dibujar(); guardar(); });
-$("docAncho").addEventListener("input", e=>{ $("docAnchoTxt").textContent = e.target.value + "%"; redibujar(); guardar(); });
+$("docSep").addEventListener("input", e=>{ $("docSepTxt").textContent = e.target.value + "%"; redibujar(); guardar(); });
 $("docNum").addEventListener("input", ()=>{ nombreVista = null; pintarChips(); redibujar(); guardar(); });
 ["docTipo","docNo","docLetra"].forEach(id=> $(id).addEventListener("change", ()=>{ pintarChips(); dibujar(); guardar(); }));
 $("lista").addEventListener("input", ()=>{ pintarChips(); guardar(); });
@@ -706,7 +705,7 @@ $("lista").addEventListener("input", ()=>{ pintarChips(); guardar(); });
   const d = leerGuardado();
   CAMPOS.forEach(k=>{ if(d[k]!==undefined) $(k).value = d[k]; });
   if(d.docNo!==undefined) $("docNo").checked = d.docNo;
-  $("docAnchoTxt").textContent = $("docAncho").value + "%";
+  $("docSepTxt").textContent = $("docSep").value + "%";
   if(d.estilo) estilo = {...ESTILO_INICIAL, ...d.estilo};
   actual = MODELOS.find(m=>m.id===d.modelo) || MODELOS[0];
   pintarGaleria(); pintarLetras(); pintarColores(); pintarControles(); pintarChips();
