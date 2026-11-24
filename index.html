@@ -141,6 +141,7 @@
       <button data-g="todos" class="activo">Todos</button>
       <button data-g="Preescolar">Preescolar</button>
       <button data-g="Grado Quinto">Grado Quinto</button>
+      <button data-g="Mención de Honor">🏅 Menciones de Honor</button>
     </div>
     <div class="galeria" id="galeria"></div>
   </section>
@@ -204,7 +205,19 @@
       </section>
 
       <section class="panel">
-        <h2><span class="n">3</span> Lugar, fecha y firmas <span style="font-weight:400;color:var(--suave);font-size:.85rem">(opcional)</span></h2>
+        <h2><span class="n">3</span> <span id="tituloDatos">Lugar, fecha y firmas</span> <span style="font-weight:400;color:var(--suave);font-size:.85rem">(opcional)</span></h2>
+        <div id="datosMencion" hidden>
+          <div class="fila" style="grid-template-columns:1fr 1fr">
+            <div><label for="resolucion">Resolución No.</label><input type="text" id="resolucion" placeholder="0123"></div>
+            <div><label for="resFecha">de (fecha)</label><input type="text" id="resFecha" placeholder="15 de marzo de 2010"></div>
+          </div>
+          <div class="fila" style="grid-template-columns:1fr 1fr">
+            <div><label for="dane">DANE No.</label><input type="text" id="dane" inputmode="numeric" placeholder="227001000000"></div>
+            <div><label for="nit">NIT No.</label><input type="text" id="nit" placeholder="900.123.456-7"></div>
+          </div>
+          <p class="nota">Estos datos de la institución salen en la parte de arriba de la Mención de Honor.</p>
+        </div>
+        <div id="datosFecha">
         <label for="lugar">Se firma en</label>
         <input type="text" id="lugar" placeholder="Ej: Santiago de la Selva">
         <div class="fila">
@@ -219,6 +232,7 @@
           </div>
         </div>
         <button id="btnHoy" class="sec">📅 Poner la fecha de hoy</button>
+        </div>
         <label for="rector">Nombre del Rector(a)</label>
         <input type="text" id="rector" placeholder="En blanco para firmar a mano">
         <label for="director">Nombre del Director(a) de grupo</label>
@@ -273,6 +287,9 @@ const MODELOS = [
    nombre:[407,326,1208], lugar:[754,737,1041], dia:[784,501,577], mes:[784,750,994], rector:[863,389,668], director:[863,855,1140]},
   {id:"quinto-vertical", oro:9, parrafo:19,      grado:"Grado Quinto", titulo:"Vertical", s:0.72,
    nombre:[530,113,638], lugar:[816,343,554], dia:[837,193,239], mes:[837,347,493], rector:[901,160,294], director:[901,417,567]},
+  {id:"mencion-honor", parrafo:35, nt:1.12,  grado:"Mención de Honor", titulo:"Azul y dorado", s:1,
+   nombre:[624,223,1394], resolucion:[243,792,887], resFecha:[243,928,1075], dane:[282,554,754], nit:[282,881,1094],
+   rector:[841,207,570], director:[841,957,1329]},
 ];
 
 // ---------- Tipos de letra: t = tamaño base en un diploma horizontal ----------
@@ -337,7 +354,7 @@ function formatoDoc(e){
 
 // ---------- Guardado ----------
 const CLAVE = "diplomas-iersss";
-const CAMPOS = ["nombre","docTipo","docNum","docLetra","docSep","lugar","dia","mes","rector","director","lista"];
+const CAMPOS = ["nombre","docTipo","docNum","docLetra","docSep","lugar","dia","mes","resolucion","resFecha","dane","nit","rector","director","lista"];
 function leerGuardado(){ try{ return JSON.parse(localStorage.getItem(CLAVE) || "{}"); }catch(e){ return {}; } }
 function guardar(){
   try{
@@ -411,7 +428,7 @@ async function dibujar(entrada){
     const max = (x1-x0) - 6;
     const familia = L.css + ", cursive";
     const cx = (x0+x1)/2;
-    const base = Math.round(L.t * s * estilo.tamano / 100);
+    const base = Math.round(L.t * s * (m.nt||1) * estilo.tamano / 100);
     let cy = y - Math.round(10*s) - estilo.altura*s;
     const xNombre = cx, alinear = "center";
     let docTam = 0, docY = 0, docFuente = null;
@@ -442,7 +459,7 @@ async function dibujar(entrada){
       const anchoDoc = met.width + espPrev*(nLetras-1);
       const pad = Math.round(16*s), xa = Math.round(cx - anchoDoc/2 - pad), ancho = Math.round(anchoDoc + 2*pad);
       const img0 = imagenes[m.id + "_img"];
-      for(let r = m.oro - 3; r <= m.oro + 3; r++){
+      if(m.oro) for(let r = m.oro - 3; r <= m.oro + 3; r++){
         ctx.drawImage(img0, xa, y + 5, ancho, 1, xa, y + r, ancho, 1);
       }
       ctx.font = fuenteNombre;
@@ -492,6 +509,10 @@ async function dibujar(entrada){
   escribir($("lugar").value.trim(), m.lugar, sub, serif, Math.round(22*s), "italic");
   escribir($("dia").value.trim(),   m.dia,   sub, serif, Math.round(22*s), "italic");
   escribir($("mes").value,          m.mes,   sub, serif, Math.round(22*s), "italic");
+  escribir($("resolucion").value.trim(), m.resolucion, sub, serif, Math.round(20*s), "italic");
+  escribir($("resFecha").value.trim(),   m.resFecha,   sub, serif, Math.round(20*s), "italic");
+  escribir($("dane").value.trim(),       m.dane,       sub, serif, Math.round(20*s), "italic");
+  escribir($("nit").value.trim(),        m.nit,        sub, serif, Math.round(20*s), "italic");
   escribir($("rector").value.trim(),   m.rector,   sub+1, serif, Math.round(19*s), "bold");
   escribir($("director").value.trim(), m.director, sub+1, serif, Math.round(19*s), "bold");
 }
@@ -603,10 +624,11 @@ $("btnLote").onclick = async ()=>{
     relleno.style.width = ((i+1)/nombres.length*100)+"%";
     await new Promise(r=>setTimeout(r,0));
   }
-  pdf.save(`Diplomas_${actual.grado.replace(/\s+/g,"_")}.pdf`);
+  const nombreLote = actual.grado === "Mención de Honor" ? "Menciones_de_Honor" : "Diplomas_" + actual.grado.replace(/\s+/g,"_");
+  pdf.save(`${nombreLote}.pdf`);
   btn.textContent="📄 Generar un PDF con todos"; btn.disabled=false;
   setTimeout(()=>barra.style.display="none", 1200);
-  aviso(`🎉 Listo: ${nombres.length} diplomas en un solo PDF`); confeti();
+  aviso(`🎉 Listo: ${nombres.length} ${actual.grado === "Mención de Honor" ? "menciones" : "diplomas"} en un solo PDF`); confeti();
   dibujar();
 };
 
@@ -673,7 +695,14 @@ document.addEventListener("keydown", e=>{ if(e.key==="Escape") $("zoom").classLi
 
 // ---------- Galería de modelos ----------
 let filtro = "todos";
+function ajustarPaneles(){
+  const mencion = actual.grado === "Mención de Honor";
+  $("datosMencion").hidden = !mencion;
+  $("datosFecha").hidden = mencion;
+  $("tituloDatos").textContent = mencion ? "Datos de la institución y firmas" : "Lugar, fecha y firmas";
+}
 function pintarGaleria(){
+  ajustarPaneles();
   const g = $("galeria"); g.innerHTML = "";
   MODELOS.filter(m => filtro==="todos" || m.grado===filtro).forEach(m=>{
     const b = document.createElement("button");
@@ -692,7 +721,7 @@ document.querySelectorAll("#filtros button").forEach(b=>{
 
 // ---------- Campos de texto ----------
 $("nombre").addEventListener("input", ()=>{ nombreVista = null; pintarChips(); pintarLetras(); redibujar(); guardar(); });
-["lugar","dia","rector","director"].forEach(id=> $(id).addEventListener("input", ()=>{ redibujar(); guardar(); }));
+["lugar","dia","rector","director","resolucion","resFecha","dane","nit"].forEach(id=> $(id).addEventListener("input", ()=>{ redibujar(); guardar(); }));
 $("mes").addEventListener("change", ()=>{ dibujar(); guardar(); });
 $("docSep").addEventListener("input", e=>{ $("docSepTxt").textContent = e.target.value + "%"; redibujar(); guardar(); });
 $("docNum").addEventListener("input", ()=>{ nombreVista = null; pintarChips(); redibujar(); guardar(); });
