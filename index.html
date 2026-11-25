@@ -142,6 +142,7 @@
       <button data-g="Preescolar">Preescolar</button>
       <button data-g="Grado Quinto">Grado Quinto</button>
       <button data-g="Mención de Honor">🏅 Menciones de Honor</button>
+      <button data-g="Reconocimiento">🏆 Reconocimientos</button>
     </div>
     <div class="galeria" id="galeria"></div>
   </section>
@@ -215,7 +216,7 @@
             <div><label for="dane">DANE No.</label><input type="text" id="dane" inputmode="numeric" placeholder="227001000000"></div>
             <div><label for="nit">NIT No.</label><input type="text" id="nit" placeholder="900.123.456-7"></div>
           </div>
-          <p class="nota">Estos datos de la institución salen en la parte de arriba de la Mención de Honor.</p>
+          <p class="nota">Estos datos de la institución salen en la parte de arriba de la Mención de Honor y del Reconocimiento.</p>
         </div>
         <div id="datosFecha">
         <label for="lugar">Se firma en</label>
@@ -287,7 +288,10 @@ const MODELOS = [
    nombre:[407,326,1208], lugar:[754,737,1041], dia:[784,501,577], mes:[784,750,994], rector:[863,389,668], director:[863,855,1140]},
   {id:"quinto-vertical", oro:9, parrafo:19,      grado:"Grado Quinto", titulo:"Vertical", s:0.72,
    nombre:[530,113,638], lugar:[816,343,554], dia:[837,193,239], mes:[837,347,493], rector:[901,160,294], director:[901,417,567]},
-  {id:"mencion-honor", parrafo:35, nt:1.12,  grado:"Mención de Honor", titulo:"Azul y dorado", s:1,
+  {id:"mencion-honor", parrafo:35, nt:1.12, inst:true, lote:"Menciones_de_Honor", plural:"menciones", grado:"Mención de Honor", titulo:"Azul y dorado", s:1,
+   nombre:[624,223,1394], resolucion:[243,792,887], resFecha:[243,928,1075], dane:[282,554,754], nit:[282,881,1094],
+   rector:[841,207,570], director:[841,957,1329]},
+  {id:"reconocimiento", parrafo:35, nt:1.12, inst:true, lote:"Reconocimientos", plural:"reconocimientos", grado:"Reconocimiento", titulo:"Azul y dorado", s:1,
    nombre:[624,223,1394], resolucion:[243,792,887], resFecha:[243,928,1075], dane:[282,554,754], nit:[282,881,1094],
    rector:[841,207,570], director:[841,957,1329]},
 ];
@@ -624,11 +628,11 @@ $("btnLote").onclick = async ()=>{
     relleno.style.width = ((i+1)/nombres.length*100)+"%";
     await new Promise(r=>setTimeout(r,0));
   }
-  const nombreLote = actual.grado === "Mención de Honor" ? "Menciones_de_Honor" : "Diplomas_" + actual.grado.replace(/\s+/g,"_");
+  const nombreLote = actual.lote || ("Diplomas_" + actual.grado.replace(/\s+/g,"_"));
   pdf.save(`${nombreLote}.pdf`);
   btn.textContent="📄 Generar un PDF con todos"; btn.disabled=false;
   setTimeout(()=>barra.style.display="none", 1200);
-  aviso(`🎉 Listo: ${nombres.length} ${actual.grado === "Mención de Honor" ? "menciones" : "diplomas"} en un solo PDF`); confeti();
+  aviso(`🎉 Listo: ${nombres.length} ${actual.plural || "diplomas"} en un solo PDF`); confeti();
   dibujar();
 };
 
@@ -696,7 +700,7 @@ document.addEventListener("keydown", e=>{ if(e.key==="Escape") $("zoom").classLi
 // ---------- Galería de modelos ----------
 let filtro = "todos";
 function ajustarPaneles(){
-  const mencion = actual.grado === "Mención de Honor";
+  const mencion = !!actual.inst;
   $("datosMencion").hidden = !mencion;
   $("datosFecha").hidden = mencion;
   $("tituloDatos").textContent = mencion ? "Datos de la institución y firmas" : "Lugar, fecha y firmas";

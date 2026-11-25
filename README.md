@@ -1,6 +1,6 @@
 # Diplomas · I.E.R. Santiago de la Selva
 
-Página para llenar los diplomas de Preescolar y Grado Quinto, y las Menciones de Honor, con el nombre de cada estudiante.
+Página para llenar los diplomas de Preescolar y Grado Quinto, las Menciones de Honor y los Reconocimientos, con el nombre de cada estudiante.
 
 1. Escoge el modelo.
 2. Escribe el nombre (y, si quieres, el lugar, la fecha y los nombres de quienes firman).
