@@ -216,7 +216,8 @@
             <div><label for="dane">DANE No.</label><input type="text" id="dane" inputmode="numeric" placeholder="227001000000"></div>
             <div><label for="nit">NIT No.</label><input type="text" id="nit" placeholder="900.123.456-7"></div>
           </div>
-          <p class="nota">Estos datos de la institución salen en la parte de arriba de la Mención de Honor y del Reconocimiento.</p>
+          <p class="nota">Estos datos de la institución salen en la parte de arriba de la Mención de Honor y del Reconocimiento. El DANE y el NIT ya vienen escritos; falta la resolución.</p>
+          <button id="btnDatosInst" class="sec">🏫 Volver a poner los datos de la institución</button>
         </div>
         <div id="datosFecha">
         <label for="lugar">Se firma en</label>
@@ -318,6 +319,16 @@ const COLORES = [
   {n:"Vino",   c:"#7a1c2e"}, {n:"Verde",  c:"#1f5e2e"}, {n:"Morado", c:"#4b2a7a"},
 ];
 
+// Datos básicos de la institución (se llenan solos la primera vez; se pueden cambiar)
+const DATOS_INSTITUCION = {
+  dane: "283860000506",
+  nit: "828.002.677-9",
+  rector: "Griselda Mavesoy Gómez",
+  resolucion: "",
+  resFecha: "",
+};
+const VERSION_DATOS = 1;
+
 const ESTILO_INICIAL = {letra:"greatvibes", color:"#14306e", tamano:100, altura:0, mayus:false, brillo:false, sombra:false};
 const AZUL = "#14306e";
 const $ = id => document.getElementById(id);
@@ -362,7 +373,7 @@ const CAMPOS = ["nombre","docTipo","docNum","docLetra","docSep","lugar","dia","m
 function leerGuardado(){ try{ return JSON.parse(localStorage.getItem(CLAVE) || "{}"); }catch(e){ return {}; } }
 function guardar(){
   try{
-    const d = {modelo: actual.id, estilo};
+    const d = {modelo: actual.id, estilo, versionDatos: VERSION_DATOS};
     CAMPOS.forEach(k=> d[k] = $(k).value);
     d.docNo = $("docNo").checked;
     localStorage.setItem(CLAVE, JSON.stringify(d));
@@ -683,6 +694,11 @@ $("btnReset").onclick = ()=>{
   aviso("↺ Estilo original restablecido");
 };
 
+$("btnDatosInst").onclick = ()=>{
+  Object.entries(DATOS_INSTITUCION).forEach(([k,v])=>{ if(v) $(k).value = v; });
+  dibujar(); guardar(); aviso("🏫 Datos de la institución puestos");
+};
+
 $("btnHoy").onclick = ()=>{
   const h = new Date();
   $("dia").value = h.getDate();
@@ -738,6 +754,9 @@ $("lista").addEventListener("input", ()=>{ pintarChips(); guardar(); });
   const d = leerGuardado();
   CAMPOS.forEach(k=>{ if(d[k]!==undefined) $(k).value = d[k]; });
   if(d.docNo!==undefined) $("docNo").checked = d.docNo;
+  if(d.versionDatos !== VERSION_DATOS){
+    Object.entries(DATOS_INSTITUCION).forEach(([k,v])=>{ if(v && !$(k).value.trim()) $(k).value = v; });
+  }
   $("docSepTxt").textContent = $("docSep").value + "%";
   if(d.estilo) estilo = {...ESTILO_INICIAL, ...d.estilo};
   actual = MODELOS.find(m=>m.id===d.modelo) || MODELOS[0];
