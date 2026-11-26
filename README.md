@@ -9,3 +9,7 @@ Página para llenar los diplomas de Preescolar y Grado Quinto, las Menciones de 
 Los nombres no se envían a ningún servidor: todo se hace en el navegador de quien usa la página.
 
 Permite poner el tipo y número de documento debajo de la línea del nombre. También tiene 13 tipos de letra, colores, tamaño y posición del nombre, borde dorado, sombra, modo noche y vista ampliada.
+
+## Generador de horarios
+
+`horario.html` arma horarios por grupo sin cruces de docentes. Se llenan la jornada, los grupos, los docentes (con sus horas no disponibles) y la intensidad horaria de cada materia. Se ve por grupo, por docente o en vista general, y se descarga en Excel o se imprime.

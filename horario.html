@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Generador de horarios · I.E.R. Santiago de la Selva</title>
+<script>
+  (function(){try{var t=localStorage.getItem("diplomas-tema");if(!t)t=matchMedia("(prefers-color-scheme: dark)").matches?"oscuro":"claro";document.documentElement.dataset.tema=t;}catch(e){}})();
+</script>
+<script src="lib/xlsx.full.min.js" defer></script>
+<style>
+  :root{
+    --azul:#1d3f8f;--azul-osc:#132a63;--oro:#c9961a;
+    --fondo:#eef2f8;--panel:#ffffff;--texto:#1f2937;--suave:#6b7280;--borde:#d5dce8;
+    --campo:#ffffff;--acento:#1d3f8f;--hover:#f1f5fd;--rojo:#c0392b;--verde:#1e8449;
+  }
+  [data-tema="oscuro"]{
+    --fondo:#0b1220;--panel:#121b2e;--texto:#e5e9f2;--suave:#94a3b8;--borde:#26324a;
+    --campo:#0e1626;--acento:#8fb0ff;--hover:#1a2640;--rojo:#ff7b6b;--verde:#5fd08a;
+  }
+  *{box-sizing:border-box}
+  [data-tema="oscuro"]{color-scheme:dark}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--fondo);color:var(--texto);transition:background .3s,color .3s}
+  header{background:linear-gradient(90deg,var(--azul-osc),var(--azul));color:#fff;padding:14px 20px;border-bottom:4px solid var(--oro);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  header .titulo{flex:1;min-width:240px}
+  header h1{margin:0;font-size:1.25rem}
+  header p{margin:4px 0 0;opacity:.85;font-size:.9rem}
+  .hbtn{width:auto;margin:0;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:999px;padding:8px 14px;white-space:nowrap;text-decoration:none;font-weight:600;font-size:.9rem}
+  .hbtn:hover{background:rgba(255,255,255,.25)}
+  .contenedor{max-width:1500px;margin:auto;padding:20px}
+  .panel{background:var(--panel);border:1px solid var(--borde);border-radius:12px;padding:16px;margin-bottom:16px}
+  .panel h2{font-size:1.05rem;margin:0 0 12px;color:var(--acento);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .panel h2 .n{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--oro);color:#fff;font-size:.85rem}
+  .nota{font-size:.82rem;color:var(--suave);margin:6px 0 0}
+  label{font-size:.85rem;font-weight:600}
+  input[type=text],input[type=number],input[type=time],select,textarea{padding:7px 9px;border:1px solid var(--borde);border-radius:7px;font:inherit;font-size:.9rem;background:var(--campo);color:var(--texto)}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--acento);border-color:transparent}
+  button{padding:8px 14px;border:0;border-radius:8px;font:inherit;font-weight:600;cursor:pointer;background:var(--azul);color:#fff;transition:background .15s,transform .1s}
+  button:hover{background:var(--azul-osc)}
+  button:active{transform:scale(.98)}
+  button.sec{background:transparent;color:var(--acento);border:1px solid var(--acento)}
+  button.sec:hover{background:var(--hover)}
+  button.peligro{background:transparent;color:var(--rojo);border:1px solid transparent;padding:4px 8px}
+  button.peligro:hover{border-color:var(--rojo);background:transparent}
+  button.grande{padding:12px 22px;font-size:1rem}
+  .fila{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .espacio{flex:1}
+
+  /* Pestañas de horarios (primaria, bachillerato…) */
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+  .tab{background:var(--panel);color:var(--texto);border:1px solid var(--borde);border-radius:999px;padding:8px 16px}
+  .tab:hover{background:var(--hover)}
+  .tab.activo{background:var(--azul);color:#fff;border-color:var(--azul)}
+
+  /* Pasos */
+  .pasos{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+  .paso{background:transparent;color:var(--acento);border:1px solid var(--borde);border-radius:8px}
+  .paso.activo{background:var(--oro);border-color:var(--oro);color:#fff}
+  .seccion{display:none}
+  .seccion.activa{display:block;animation:aparece .2s}
+  @keyframes aparece{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+  /* Tablas de edición */
+  table{border-collapse:collapse}
+  .tabla{width:100%;font-size:.88rem}
+  .tabla th,.tabla td{border-bottom:1px solid var(--borde);padding:6px 6px;text-align:left;vertical-align:middle}
+  .tabla th{font-size:.78rem;color:var(--suave);text-transform:uppercase;letter-spacing:.03em}
+  .desplaza{overflow-x:auto}
+  .matriz td,.matriz th{text-align:center;padding:5px 4px}
+  .matriz th:first-child,.matriz td:first-child{text-align:left;position:sticky;left:0;background:var(--panel);z-index:1}
+  .matriz input[type=number]{width:52px;text-align:center;padding:5px 4px}
+  .matriz select{width:100%;min-width:110px;font-size:.78rem;padding:4px;margin-top:3px}
+  .matriz .materia{display:flex;align-items:center;gap:6px;min-width:250px}
+  .matriz .materia input{flex:1;min-width:120px}
+  .matriz .materia input[type=color]{flex:0 0 28px;min-width:28px;width:28px;height:28px;padding:0;border:0;background:none;cursor:pointer}
+  .punto{width:14px;height:14px;border-radius:4px;flex:0 0 auto;border:1px solid rgba(0,0,0,.15)}
+  .total.ok{color:var(--verde);font-weight:700}
+  .total.mal{color:var(--rojo);font-weight:700}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{display:inline-flex;align-items:center;gap:6px;background:var(--hover);border:1px solid var(--borde);border-radius:999px;padding:4px 6px 4px 12px;font-size:.88rem}
+  .chip input{border:0;background:transparent;padding:2px;width:auto;min-width:40px;max-width:150px}
+  .carga{font-size:.78rem;color:var(--suave)}
+  .carga.mal{color:var(--rojo);font-weight:700}
+
+  /* Disponibilidad */
+  .dispo td{width:46px;height:30px;border:1px solid var(--borde);text-align:center;cursor:pointer;font-size:.8rem;user-select:none}
+  .dispo td.no{background:#f8d7da;color:#9b1c1c}
+  [data-tema="oscuro"] .dispo td.no{background:#5a1d24;color:#ffb4b4}
+  .dispo th{font-size:.75rem;padding:4px;color:var(--suave)}
+  dialog{border:1px solid var(--borde);border-radius:12px;background:var(--panel);color:var(--texto);max-width:96vw}
+  dialog::backdrop{background:rgba(5,10,25,.6)}
+
+  /* Horario generado */
+  .vistas{display:flex;gap:6px;flex-wrap:wrap}
+  .vista-btn{background:transparent;color:var(--acento);border:1px solid var(--acento);border-radius:999px}
+  .vista-btn.activo{background:var(--azul);border-color:var(--azul);color:#fff}
+  .hoja{background:#fff;color:#1f2937;border-radius:10px;padding:16px;margin-top:14px;box-shadow:0 4px 18px rgba(0,0,0,.12)}
+  .hoja h3{margin:0 0 2px;color:#132a63;font-size:1.15rem;text-align:center}
+  .hoja .sub{text-align:center;color:#6b7280;font-size:.85rem;margin-bottom:10px}
+  .horario{width:100%;table-layout:fixed;font-size:.82rem}
+  .horario th,.horario td{border:1px solid #c8d0e0;padding:4px;text-align:center;vertical-align:middle}
+  .horario thead th{background:#132a63;color:#fff;font-weight:700;padding:7px 4px}
+  .horario .hora{background:#eef2f8;font-weight:700;color:#132a63;width:92px;font-size:.78rem;line-height:1.25}
+  .horario .hora b{display:block;font-size:.95rem}
+  .horario tr.pausa td{background:repeating-linear-gradient(45deg,#fdf6e3,#fdf6e3 8px,#f8edd0 8px,#f8edd0 16px);color:#8a6a10;font-weight:700;letter-spacing:.1em;text-transform:uppercase;font-size:.75rem;padding:5px}
+  .celda{border-radius:6px;padding:6px 4px;min-height:44px;display:flex;flex-direction:column;justify-content:center;cursor:pointer;transition:transform .1s,box-shadow .1s;line-height:1.2}
+  .celda:hover{transform:scale(1.03);box-shadow:0 2px 8px rgba(0,0,0,.15)}
+  .celda .m{font-weight:700;font-size:.8rem;text-transform:uppercase}
+  .celda .d{font-size:.72rem;opacity:.8;margin-top:2px}
+  .celda.vacia{background:#fafafa;color:#b0b7c3;font-size:.75rem}
+  .celda.sel{outline:3px solid #c9961a;outline-offset:1px}
+  .celda.cruce{outline:3px solid #c0392b}
+  .sabana .horario{font-size:.75rem}
+  .sabana .celda{min-height:38px;padding:4px 2px}
+  .sabana .celda .m{font-size:.72rem}
+  .sabana h4{margin:14px 0 6px;color:#132a63}
+  .reporte{margin-top:12px;padding:10px 14px;border-radius:8px;font-size:.9rem}
+  .reporte.ok{background:#e8f6ee;color:#1e6b3d;border:1px solid #b6e2c6}
+  .reporte.mal{background:#fdecea;color:#8a2a1f;border:1px solid #f5c2bc}
+  [data-tema="oscuro"] .reporte.ok{background:#10301f;color:#9ee6b9;border-color:#1f5a38}
+  [data-tema="oscuro"] .reporte.mal{background:#3a1512;color:#ffb4a9;border-color:#6b2a24}
+  .leyenda{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .leyenda span{font-size:.72rem;padding:3px 8px;border-radius:999px;color:#1f2937}
+
+  .avisos{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;z-index:60;pointer-events:none}
+  .aviso{background:#14306e;color:#fff;padding:10px 18px;border-radius:999px;box-shadow:0 6px 20px rgba(0,0,0,.3);font-size:.9rem;animation:sube .25s;border:1px solid var(--oro);max-width:90vw;text-align:center}
+  @keyframes sube{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  .cargando{display:none;align-items:center;gap:10px;color:var(--acento);font-weight:600}
+  .cargando.si{display:flex}
+  .rueda{width:20px;height:20px;border:3px solid var(--borde);border-top-color:var(--oro);border-radius:50%;animation:gira .8s linear infinite}
+  @keyframes gira{to{transform:rotate(360deg)}}
+
+  @media print{
+    @page{size:letter landscape;margin:8mm}
+    body{background:#fff}
+    header,.tabs,.pasos,.no-imprimir,.avisos{display:none!important}
+    .contenedor{padding:0;max-width:none}
+    .panel{border:0;padding:0;margin:0;background:#fff}
+    .seccion{display:none!important}
+    #sec-ver{display:block!important}
+    .hoja{box-shadow:none;padding:0;margin:0;page-break-after:always;break-after:page}
+    .hoja:last-child{page-break-after:auto;break-after:auto}
+    .celda:hover{transform:none;box-shadow:none}
+    .horario th,.horario td{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .celda,.horario thead th,.horario tr.pausa td,.horario .hora{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="titulo">
+    <h1>🗓 Generador de horarios · I.E.R. Santiago de la Selva</h1>
+    <p>Llena las materias, la intensidad y los docentes; la página arma el horario sin cruces.</p>
+  </div>
+  <a class="hbtn" href="./">🎓 Diplomas</a>
+  <button class="hbtn" id="btnTema"></button>
+</header>
+
+<div class="contenedor">
+  <div class="tabs no-imprimir" id="tabs"></div>
+
+  <div class="pasos no-imprimir" id="pasos">
+    <button class="paso activo" data-s="jornada">1 · Jornada</button>
+    <button class="paso" data-s="docentes">2 · Grupos y docentes</button>
+    <button class="paso" data-s="materias">3 · Materias e intensidad</button>
+    <button class="paso" data-s="ver">4 · Generar y ver horario</button>
+  </div>
+
+  <!-- 1. JORNADA -->
+  <section class="panel seccion activa" id="sec-jornada">
+    <h2><span class="n">1</span> Jornada y horas de clase</h2>
+    <div class="fila">
+      <label>Nombre de este horario <input type="text" id="nombreHorario" style="min-width:240px"></label>
+      <label>Año <input type="text" id="anio" style="width:80px"></label>
+    </div>
+    <p class="nota">Días de clase:</p>
+    <div class="fila" id="dias"></div>
+    <div class="desplaza" style="margin-top:12px">
+      <table class="tabla" id="tablaBloques">
+        <thead><tr><th>#</th><th>Tipo</th><th>Inicia</th><th>Termina</th><th>Nombre (descansos)</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="fila" style="margin-top:10px">
+      <button class="sec" id="addClase">＋ Hora de clase</button>
+      <button class="sec" id="addPausa">＋ Descanso / almuerzo</button>
+      <span class="espacio"></span>
+      <span class="nota" id="resumenJornada"></span>
+    </div>
+  </section>
+
+  <!-- 2. GRUPOS Y DOCENTES -->
+  <section class="panel seccion" id="sec-docentes">
+    <h2><span class="n">2</span> Grupos</h2>
+    <div class="chips" id="grupos"></div>
+    <div class="fila" style="margin-top:10px">
+      <input type="text" id="nuevoGrupo" placeholder="Ej: 6°A" style="width:140px">
+      <button class="sec" id="addGrupo">＋ Agregar grupo</button>
+    </div>
+
+    <h2 style="margin-top:24px"><span class="n">👩‍🏫</span> Docentes</h2>
+    <div class="desplaza">
+      <table class="tabla" id="tablaDocentes">
+        <thead><tr><th>Nombre</th><th>Horas asignadas</th><th>No disponible</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="fila" style="margin-top:10px;align-items:flex-start">
+      <textarea id="nuevosDocentes" rows="3" placeholder="Escribe o pega nombres, uno por línea" style="min-width:300px"></textarea>
+      <button class="sec" id="addDocentes">＋ Agregar docentes</button>
+    </div>
+    <p class="nota">Con <b>No disponible</b> marcas las horas en que un docente no puede dar clase (por ejemplo, si trabaja en otra sede). El generador las respeta.</p>
+  </section>
+
+  <!-- 3. MATERIAS E INTENSIDAD -->
+  <section class="panel seccion" id="sec-materias">
+    <h2><span class="n">3</span> Materias, horas por semana y docente</h2>
+    <p class="nota" style="margin-top:-6px">En cada casilla: horas semanales de la materia en ese grupo y el docente que la orienta. Con «Docente de toda la fila» asignas el mismo profesor a todos los grupos de una vez.</p>
+    <div class="desplaza" style="margin-top:10px">
+      <table class="tabla matriz" id="matriz"></table>
+    </div>
+    <div class="fila" style="margin-top:10px">
+      <input type="text" id="nuevaMateria" placeholder="Nueva materia" style="width:200px">
+      <button class="sec" id="addMateria">＋ Agregar materia</button>
+    </div>
+  </section>
+
+  <!-- 4. GENERAR Y VER -->
+  <section class="panel seccion" id="sec-ver">
+    <div class="no-imprimir">
+      <h2><span class="n">4</span> Generar el horario</h2>
+      <div class="fila">
+        <label class="fila" style="font-weight:400"><input type="checkbox" id="optDobles"> Juntar las horas en bloques de 2 (como el horario actual)</label>
+        <label style="font-weight:400">Máximo de horas de una misma materia por día
+          <select id="optMaxDia"><option>1</option><option>2</option><option>3</option><option>4</option></select></label>
+      </div>
+      <div class="fila" style="margin-top:12px">
+        <button class="grande" id="btnGenerar">⚡ Generar horario</button>
+        <div class="cargando" id="cargando"><div class="rueda"></div> Buscando un horario sin cruces…</div>
+      </div>
+      <div id="reporte"></div>
+
+      <div class="fila" style="margin-top:16px" id="barraVista" hidden>
+        <div class="vistas">
+          <button class="vista-btn activo" data-v="grupo">Por grupo</button>
+          <button class="vista-btn" data-v="docente">Por docente</button>
+          <button class="vista-btn" data-v="sabana">Vista general</button>
+        </div>
+        <select id="selVista"></select>
+        <span class="espacio"></span>
+        <button class="sec" id="btnExcel">⬇ Excel</button>
+        <button class="sec" id="btnImprimir">🖨 Imprimir / PDF</button>
+      </div>
+      <p class="nota" id="pistaCambio" hidden>💡 Para mover una clase: toca una casilla y luego otra del mismo grupo; se intercambian si ningún docente queda cruzado.</p>
+    </div>
+    <div id="salida"></div>
+  </section>
+
+  <div class="panel no-imprimir">
+    <div class="fila">
+      <b>Guardar y compartir</b>
+      <span class="nota" style="margin:0">Todo se guarda solo en este navegador. Para pasarlo a otro computador, descarga el archivo y ábrelo allá.</span>
+      <span class="espacio"></span>
+      <button class="sec" id="btnDescargarDatos">💾 Descargar archivo</button>
+      <label class="sec" style="display:inline-block;padding:8px 14px;border:1px solid var(--acento);border-radius:8px;color:var(--acento);cursor:pointer">📂 Abrir archivo<input type="file" id="abrirDatos" accept=".json" hidden></label>
+      <button class="peligro" id="btnRestaurar">Restaurar ejemplo</button>
+    </div>
+  </div>
+</div>
+
+<dialog id="dlgDispo">
+  <h3 style="margin-top:0" id="dlgTitulo">Disponibilidad</h3>
+  <p class="nota">Toca las casillas en que el docente <b>no</b> puede dar clase.</p>
+  <table class="dispo" id="tablaDispo"></table>
+  <div class="fila" style="margin-top:12px;justify-content:flex-end"><button id="cerrarDispo">Listo</button></div>
+</dialog>
+
+<div class="avisos" id="avisos"></div>
+
+<script>
+// =====================================================================
+//  Datos de ejemplo
+// =====================================================================
+const DIAS = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+
+function bloquesBachillerato(){
+  return [
+    {t:"clase", i:"07:15", f:"08:10"}, {t:"clase", i:"08:10", f:"09:05"},
+    {t:"pausa", i:"09:05", f:"09:20", n:"Descanso"},
+    {t:"clase", i:"09:20", f:"10:15"}, {t:"clase", i:"10:15", f:"11:10"}, {t:"clase", i:"11:10", f:"12:05"},
+    {t:"pausa", i:"12:05", f:"12:25", n:"Almuerzo"},
+    {t:"clase", i:"12:25", f:"13:10"}, {t:"clase", i:"13:10", f:"14:15"},
+  ];
+}
+// Plan de 6° a 9° y de 10° y 11° tomado del horario 2026
+const PLAN_BASICA = {"Matemáticas":3,"Geometría":1,"Estadística":1,"Español":4,"Lectura Crítica":2,"Inglés":3,
+  "Ciencias Naturales":4,"Sociales":4,"Agropecuaria":2,"Tecnología":2,"Artes":1,"Educación Física":1,"Ética":1,
+  "Religión":1,"Emprendimiento":1,"Cátedra Ambiental":1,"Proyecto Ciencia":1,"Proyecto Artes":1,"Proyecto Deporte":1};
+const PLAN_MEDIA = {"Matemáticas":3,"Geometría":1,"Estadística":1,"Español":4,"Lectura Crítica":2,"Inglés":3,
+  "Química":4,"Física":2,"Sociales":2,"Ecopolítica":1,"Filosofía":2,"Agropecuaria":1,"Tecnología":2,"Artes":1,
+  "Educación Física":1,"Ética":1,"Cátedra Ambiental":1,"Proyecto Ciencia":1,"Proyecto Artes":1,"Proyecto Deporte":1};
+
+function ejemploBachillerato(){
+  const grupos = ["6°","7°","8°","9°","10°","11°"];
+  const nombres = [...new Set([...Object.keys(PLAN_BASICA), ...Object.keys(PLAN_MEDIA)])];
+  const materias = nombres.map((n,i)=>({id:"m"+i, nombre:n, color:colorMateria(i)}));
+  const horas = {};
+  materias.forEach(m=>{
+    grupos.forEach(g=>{
+      const plan = (g==="10°"||g==="11°") ? PLAN_MEDIA : PLAN_BASICA;
+      if(plan[m.nombre]) horas[m.id+"|"+g] = {h:plan[m.nombre], d:""};
+    });
+  });
+  return {id:"bach", nombre:"Bachillerato 6° a 11°", anio:"2027", dias:DIAS.slice(0,5), bloques:bloquesBachillerato(),
+          grupos, docentes:[], materias, horas, opciones:{dobles:true, maxDia:2}, resultado:null};
+}
+function ejemploPrimaria(){
+  const grupos = ["1°","2°","3°","4°","5°"];
+  const plan = {"Matemáticas":5,"Español":5,"Ciencias Naturales":3,"Sociales":3,"Inglés":2,"Educación Física":2,
+                "Artes":1,"Ética":1,"Religión":1,"Tecnología":1,"Agropecuaria":1};
+  const materias = Object.keys(plan).map((n,i)=>({id:"m"+i, nombre:n, color:colorMateria(i)}));
+  const docentes = grupos.map(g=>({nombre:"Docente de "+g, no:{}}));
+  const horas = {};
+  materias.forEach(m=> grupos.forEach(g=> horas[m.id+"|"+g] = {h:plan[m.nombre], d:"Docente de "+g}));
+  const bloques = bloquesBachillerato().slice(0,6);
+  return {id:"prim", nombre:"Primaria 1° a 5°", anio:"2027", dias:DIAS.slice(0,5), bloques,
+          grupos, docentes, materias, horas, opciones:{dobles:true, maxDia:2}, resultado:null};
+}
+
+const PALETA = ["#cfe2ff","#ffe0b3","#d4f5d4","#f9d2e4","#e3d7ff","#fff3b0","#c9f0ef","#ffd6cc","#dfe7c8","#f1d9ff",
+                "#cde8ff","#ffe7c2","#d0f0e0","#fde2e2","#e6e0ff","#fff6c9","#d6f2f7","#ffdcd2","#e8efd2","#f5e1ff",
+                "#d9e8ff","#ffeccf","#daf5e5","#fbe3ec"];
+function colorMateria(i){ return PALETA[i % PALETA.length]; }
+
+// =====================================================================
+//  Estado y guardado
+// =====================================================================
+const CLAVE = "horarios-iersss";
+let estado = cargar();
+let actual = estado.horarios.find(h=>h.id===estado.activo) || estado.horarios[0];
+
+function cargar(){
+  try{
+    const d = JSON.parse(localStorage.getItem(CLAVE));
+    if(d && d.horarios && d.horarios.length) return d;
+  }catch(e){}
+  return {activo:"bach", horarios:[ejemploPrimaria(), ejemploBachillerato()]};
+}
+let guardadoPendiente = null;
+function guardar(){
+  clearTimeout(guardadoPendiente);
+  guardadoPendiente = setTimeout(()=>{
+    try{ estado.activo = actual.id; localStorage.setItem(CLAVE, JSON.stringify(estado)); }catch(e){}
+  }, 200);
+}
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function aviso(t){ const d=document.createElement("div"); d.className="aviso"; d.textContent=t; $("avisos").appendChild(d); setTimeout(()=>d.remove(),3200); }
+
+// =====================================================================
+//  Tema
+// =====================================================================
+function pintarTema(){ $("btnTema").textContent = document.documentElement.dataset.tema==="oscuro" ? "☀️ Modo claro" : "🌙 Modo noche"; }
+$("btnTema").onclick = ()=>{
+  const n = document.documentElement.dataset.tema==="oscuro" ? "claro" : "oscuro";
+  document.documentElement.dataset.tema = n; try{localStorage.setItem("diplomas-tema", n);}catch(e){} pintarTema();
+};
+
+// =====================================================================
+//  Pestañas de horarios y pasos
+// =====================================================================
+function pintarTabs(){
+  const t = $("tabs"); t.innerHTML = "";
+  estado.horarios.forEach(h=>{
+    const b = document.createElement("button");
+    b.className = "tab" + (h===actual ? " activo" : ""); b.textContent = h.nombre;
+    b.onclick = ()=>{ actual = h; guardar(); pintarTodo(); };
+    t.appendChild(b);
+  });
+  const nuevo = document.createElement("button"); nuevo.className = "tab"; nuevo.textContent = "＋ Nuevo horario";
+  nuevo.onclick = ()=>{
+    const nombre = prompt("Nombre del nuevo horario (por ejemplo: Sede La Esperanza)");
+    if(!nombre) return;
+    const h = {id:"h"+Date.now(), nombre, anio:actual.anio, dias:DIAS.slice(0,5), bloques:bloquesBachillerato(),
+               grupos:[], docentes:[], materias:[], horas:{}, opciones:{dobles:true,maxDia:2}, resultado:null};
+    estado.horarios.push(h); actual = h; guardar(); pintarTodo(); irA("jornada");
+  };
+  t.appendChild(nuevo);
+  if(estado.horarios.length > 1){
+    const borrar = document.createElement("button"); borrar.className = "peligro"; borrar.textContent = "🗑 Borrar este horario";
+    borrar.onclick = ()=>{
+      if(!confirm(`¿Borrar el horario «${actual.nombre}»? No se puede deshacer.`)) return;
+      estado.horarios = estado.horarios.filter(h=>h!==actual); actual = estado.horarios[0]; guardar(); pintarTodo();
+    };
+    t.appendChild(borrar);
+  }
+}
+function irA(s){
+  document.querySelectorAll(".paso").forEach(b=>b.classList.toggle("activo", b.dataset.s===s));
+  document.querySelectorAll(".seccion").forEach(x=>x.classList.toggle("activa", x.id==="sec-"+s));
+  if(s==="materias") pintarMatriz();
+  if(s==="docentes") pintarDocentes();
+  if(s==="ver") pintarResultado();
+}
+document.querySelectorAll(".paso").forEach(b=> b.onclick = ()=> irA(b.dataset.s));
+
+// =====================================================================
+//  1. Jornada
+// =====================================================================
+function clases(){ return actual.bloques.filter(b=>b.t==="clase"); }
+function pintarJornada(){
+  $("nombreHorario").value = actual.nombre; $("anio").value = actual.anio || "";
+  const dd = $("dias"); dd.innerHTML = "";
+  DIAS.forEach(d=>{
+    const l = document.createElement("label"); l.className="chip"; l.style.paddingRight="12px";
+    l.innerHTML = `<input type="checkbox" ${actual.dias.includes(d)?"checked":""}> ${d}`;
+    l.querySelector("input").onchange = e=>{
+      if(e.target.checked) actual.dias = DIAS.filter(x=> x===d || actual.dias.includes(x));
+      else actual.dias = actual.dias.filter(x=>x!==d);
+      actual.resultado = null; guardar(); resumenJornada();
+    };
+    dd.appendChild(l);
+  });
+  const tb = $("tablaBloques").querySelector("tbody"); tb.innerHTML = "";
+  let n = 0;
+  actual.bloques.forEach((b,i)=>{
+    const tr = document.createElement("tr");
+    const num = b.t==="clase" ? ++n : "";
+    tr.innerHTML = `<td><b>${num}</b></td>
+      <td>${b.t==="clase" ? "📘 Clase" : "☕ Pausa"}</td>
+      <td><input type="time" value="${b.i}"></td><td><input type="time" value="${b.f}"></td>
+      <td>${b.t==="pausa" ? `<input type="text" value="${esc(b.n||"")}">` : ""}</td>
+      <td><button class="peligro" title="Quitar">✕</button></td>`;
+    const [ti, tf] = tr.querySelectorAll("input[type=time]");
+    ti.onchange = e=>{ b.i = e.target.value; guardar(); };
+    tf.onchange = e=>{ b.f = e.target.value; guardar(); };
+    const tn = tr.querySelector("input[type=text]"); if(tn) tn.oninput = e=>{ b.n = e.target.value; guardar(); };
+    tr.querySelector("button").onclick = ()=>{ actual.bloques.splice(i,1); actual.resultado=null; guardar(); pintarJornada(); };
+    tb.appendChild(tr);
+  });
+  resumenJornada();
+}
+function resumenJornada(){
+  const c = clases().length;
+  $("resumenJornada").textContent = `${c} horas de clase al día × ${actual.dias.length} días = ${c*actual.dias.length} horas por semana para cada grupo`;
+}
+function sumarMin(h, m){ const [a,b] = (h||"07:00").split(":").map(Number); const t=a*60+b+m; return String(Math.floor(t/60)%24).padStart(2,"0")+":"+String(t%60).padStart(2,"0"); }
+$("addClase").onclick = ()=>{ const u = actual.bloques[actual.bloques.length-1]; const i = u ? u.f : "07:00"; actual.bloques.push({t:"clase", i, f:sumarMin(i,55)}); actual.resultado=null; guardar(); pintarJornada(); };
+$("addPausa").onclick = ()=>{ const u = actual.bloques[actual.bloques.length-1]; const i = u ? u.f : "09:00"; actual.bloques.push({t:"pausa", i, f:sumarMin(i,15), n:"Descanso"}); actual.resultado=null; guardar(); pintarJornada(); };
+$("nombreHorario").oninput = e=>{ actual.nombre = e.target.value; guardar(); pintarTabs(); };
+$("anio").oninput = e=>{ actual.anio = e.target.value; guardar(); };
+
+// =====================================================================
+//  2. Grupos y docentes
+// =====================================================================
+function pintarGrupos(){
+  const g = $("grupos"); g.innerHTML = "";
+  actual.grupos.forEach((nombre,i)=>{
+    const c = document.createElement("span"); c.className = "chip";
+    c.innerHTML = `<input type="text" value="${esc(nombre)}" size="${Math.max(3,nombre.length)}"><button class="peligro" title="Quitar">✕</button>`;
+    c.querySelector("input").onchange = e=>{
+      const nuevo = e.target.value.trim(); if(!nuevo || actual.grupos.includes(nuevo)){ e.target.value = nombre; return; }
+      Object.keys(actual.horas).forEach(k=>{ const [m,gr] = k.split("|"); if(gr===nombre){ actual.horas[m+"|"+nuevo] = actual.horas[k]; delete actual.horas[k]; } });
+      actual.grupos[i] = nuevo; actual.resultado = null; guardar(); pintarGrupos();
+    };
+    c.querySelector("button").onclick = ()=>{
+      if(!confirm(`¿Quitar el grupo ${nombre}?`)) return;
+      actual.grupos.splice(i,1); Object.keys(actual.horas).forEach(k=>{ if(k.endsWith("|"+nombre)) delete actual.horas[k]; });
+      actual.resultado = null; guardar(); pintarGrupos();
+    };
+    g.appendChild(c);
+  });
+}
+$("addGrupo").onclick = ()=>{
+  const n = $("nuevoGrupo").value.trim(); if(!n) return;
+  if(actual.grupos.includes(n)){ aviso("Ese grupo ya existe"); return; }
+  actual.grupos.push(n); $("nuevoGrupo").value=""; actual.resultado=null; guardar(); pintarGrupos();
+};
+$("nuevoGrupo").onkeydown = e=>{ if(e.key==="Enter") $("addGrupo").click(); };
+
+function cargaDocente(nombre){
+  let t = 0; Object.values(actual.horas).forEach(x=>{ if(x.d===nombre) t += +x.h||0; }); return t;
+}
+function pintarDocentes(){
+  const tb = $("tablaDocentes").querySelector("tbody"); tb.innerHTML = "";
+  const capacidad = clases().length * actual.dias.length;
+  if(!actual.docentes.length) tb.innerHTML = `<tr><td colspan="4" class="nota">Todavía no hay docentes. Agrégalos abajo.</td></tr>`;
+  actual.docentes.forEach((d,i)=>{
+    const carga = cargaDocente(d.nombre), noN = Object.keys(d.no||{}).length;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td><input type="text" value="${esc(d.nombre)}" style="min-width:220px"></td>
+      <td><span class="carga ${carga>capacidad-noN?"mal":""}">${carga} h / semana</span></td>
+      <td><button class="sec">🕑 ${noN ? noN+" horas bloqueadas" : "Siempre disponible"}</button></td>
+      <td><button class="peligro" title="Quitar">✕</button></td>`;
+    tr.querySelector("input").onchange = e=>{
+      const nuevo = e.target.value.trim(); if(!nuevo){ e.target.value = d.nombre; return; }
+      Object.values(actual.horas).forEach(x=>{ if(x.d===d.nombre) x.d = nuevo; });
+      d.nombre = nuevo; actual.resultado = null; guardar(); pintarDocentes();
+    };
+    tr.querySelectorAll("button")[0].onclick = ()=> abrirDispo(d);
+    tr.querySelectorAll("button")[1].onclick = ()=>{
+      if(!confirm(`¿Quitar a ${d.nombre}? Sus materias quedarán sin docente.`)) return;
+      Object.values(actual.horas).forEach(x=>{ if(x.d===d.nombre) x.d = ""; });
+      actual.docentes.splice(i,1); actual.resultado = null; guardar(); pintarDocentes();
+    };
+    tb.appendChild(tr);
+  });
+}
+$("addDocentes").onclick = ()=>{
+  const nombres = $("nuevosDocentes").value.split(/\r?\n|,|;/).map(s=>s.trim()).filter(Boolean);
+  let n = 0;
+  nombres.forEach(x=>{ if(!actual.docentes.some(d=>d.nombre.toLowerCase()===x.toLowerCase())){ actual.docentes.push({nombre:x, no:{}}); n++; } });
+  $("nuevosDocentes").value = ""; guardar(); pintarDocentes(); if(n) aviso(`👩‍🏫 ${n} docente${n>1?"s":""} agregado${n>1?"s":""}`);
+};
+
+let docenteDispo = null;
+function abrirDispo(d){
+  docenteDispo = d; d.no = d.no || {};
+  $("dlgTitulo").textContent = "Horas en que " + d.nombre + " no puede dar clase";
+  const t = $("tablaDispo"); const cs = clases();
+  let h = "<tr><th></th>" + actual.dias.map(x=>`<th>${x.slice(0,3)}</th>`).join("") + "</tr>";
+  cs.forEach((c,p)=>{
+    h += `<tr><th>${p+1}ª<br><small>${c.i}</small></th>` + actual.dias.map((x,di)=>{
+      const k = x+"|"+p; return `<td data-k="${k}" class="${d.no[k]?"no":""}">${d.no[k]?"✕":""}</td>`;
+    }).join("") + "</tr>";
+  });
+  t.innerHTML = h;
+  t.querySelectorAll("td").forEach(td=> td.onclick = ()=>{
+    const k = td.dataset.k; if(d.no[k]) delete d.no[k]; else d.no[k] = true;
+    td.classList.toggle("no", !!d.no[k]); td.textContent = d.no[k] ? "✕" : "";
+    actual.resultado = null; guardar();
+  });
+  $("dlgDispo").showModal();
+}
+$("cerrarDispo").onclick = ()=>{ $("dlgDispo").close(); pintarDocentes(); };
+
+// =====================================================================
+//  3. Materias e intensidad
+// =====================================================================
+function opcionesDocentes(sel){
+  return `<option value="">— Sin docente —</option>` + actual.docentes.map(d=>`<option ${d.nombre===sel?"selected":""}>${esc(d.nombre)}</option>`).join("");
+}
+function pintarMatriz(){
+  const t = $("matriz");
+  const capacidad = clases().length * actual.dias.length;
+  let h = `<thead><tr><th>Materia</th><th>Docente de toda la fila</th>${actual.grupos.map(g=>`<th>${esc(g)}</th>`).join("")}<th></th></tr></thead><tbody>`;
+  actual.materias.forEach((m,mi)=>{
+    h += `<tr data-m="${m.id}"><td><div class="materia"><input type="color" value="${rgbHex(m.color)}" style="width:28px;height:28px;padding:0;border:0;background:none" title="Color"><input type="text" value="${esc(m.nombre)}"></div></td>
+      <td><select class="filaDoc">${`<option value="">— elegir —</option>` + actual.docentes.map(d=>`<option>${esc(d.nombre)}</option>`).join("")}</select></td>`;
+    actual.grupos.forEach(g=>{
+      const x = actual.horas[m.id+"|"+g] || {h:0, d:""};
+      h += `<td data-g="${esc(g)}"><input type="number" min="0" max="20" value="${x.h||""}" placeholder="0"><select>${opcionesDocentes(x.d)}</select></td>`;
+    });
+    h += `<td><button class="peligro" title="Quitar materia">✕</button></td></tr>`;
+  });
+  h += `</tbody><tfoot><tr><th>Total por grupo</th><th class="nota">disponibles: ${capacidad} h</th>`;
+  actual.grupos.forEach(g=>{
+    let s = 0; actual.materias.forEach(m=>{ s += +(actual.horas[m.id+"|"+g]?.h||0); });
+    h += `<th class="total ${s>capacidad?"mal":(s===capacidad?"ok":"")}" data-tg="${esc(g)}">${s}</th>`;
+  });
+  h += `<th></th></tr></tfoot>`;
+  t.innerHTML = h;
+
+  t.querySelectorAll("tbody tr").forEach(tr=>{
+    const m = actual.materias.find(x=>x.id===tr.dataset.m);
+    const [color, nombre] = tr.querySelectorAll(".materia input");
+    color.oninput = e=>{ m.color = e.target.value; guardar(); };
+    nombre.onchange = e=>{ m.nombre = e.target.value.trim() || m.nombre; guardar(); };
+    tr.querySelector(".filaDoc").onchange = e=>{
+      const d = e.target.value; if(!d) return;
+      actual.grupos.forEach(g=>{ const k = m.id+"|"+g; if(actual.horas[k] && +actual.horas[k].h) actual.horas[k].d = d; });
+      actual.resultado = null; guardar(); pintarMatriz(); aviso(`${m.nombre}: ${d} en todos los grupos`);
+    };
+    tr.querySelectorAll("td[data-g]").forEach(td=>{
+      const g = td.dataset.g, k = m.id+"|"+g;
+      td.querySelector("input").oninput = e=>{
+        const v = Math.max(0, +e.target.value||0);
+        if(!actual.horas[k]) actual.horas[k] = {h:0, d:""};
+        actual.horas[k].h = v; if(!v && !actual.horas[k].d) delete actual.horas[k];
+        actual.resultado = null; guardar(); actualizarTotales();
+      };
+      td.querySelector("select").onchange = e=>{
+        if(!actual.horas[k]) actual.horas[k] = {h:0, d:""};
+        actual.horas[k].d = e.target.value; actual.resultado = null; guardar();
+      };
+    });
+    tr.querySelector("button.peligro").onclick = ()=>{
+      if(!confirm(`¿Quitar la materia ${m.nombre}?`)) return;
+      actual.materias = actual.materias.filter(x=>x!==m);
+      Object.keys(actual.horas).forEach(k=>{ if(k.startsWith(m.id+"|")) delete actual.horas[k]; });
+      actual.resultado = null; guardar(); pintarMatriz();
+    };
+  });
+}
+function actualizarTotales(){
+  const capacidad = clases().length * actual.dias.length;
+  document.querySelectorAll("[data-tg]").forEach(th=>{
+    const g = th.dataset.tg; let s = 0; actual.materias.forEach(m=>{ s += +(actual.horas[m.id+"|"+g]?.h||0); });
+    th.textContent = s; th.className = "total " + (s>capacidad?"mal":(s===capacidad?"ok":""));
+  });
+}
+function rgbHex(c){ return /^#[0-9a-f]{6}$/i.test(c) ? c : "#cfe2ff"; }
+$("addMateria").onclick = ()=>{
+  const n = $("nuevaMateria").value.trim(); if(!n) return;
+  actual.materias.push({id:"m"+Date.now().toString(36), nombre:n, color:colorMateria(actual.materias.length)});
+  $("nuevaMateria").value = ""; guardar(); pintarMatriz();
+};
+$("nuevaMateria").onkeydown = e=>{ if(e.key==="Enter") $("addMateria").click(); };
+
+// =====================================================================
+//  4. Generador
+// =====================================================================
+// Una clase "c" es: {g: grupo, m: id materia, d: docente, len: 1 ó 2}
+// El resultado es: res[grupo][dia][periodo] = {m, d} | null
+function preparar(){
+  const cs = clases(), P = cs.length, D = actual.dias.length;
+  // pares de horas seguidas sin descanso en medio
+  const seguidas = new Set();
+  let idx = -1, anteriorEsClase = false;
+  actual.bloques.forEach(b=>{
+    if(b.t==="clase"){ idx++; if(anteriorEsClase) seguidas.add(idx-1); anteriorEsClase = true; }
+    else anteriorEsClase = false;
+  });
+  return {P, D, seguidas};
+}
+
+function construirClases(dobles){
+  const lista = [];
+  actual.materias.forEach(m=>{
+    actual.grupos.forEach(g=>{
+      const x = actual.horas[m.id+"|"+g]; if(!x || !(+x.h)) return;
+      let h = +x.h;
+      if(dobles && h >= 2){
+        const n2 = Math.floor(h/2); for(let i=0;i<n2;i++) lista.push({g, m:m.id, d:x.d||"", len:2});
+        h -= n2*2;
+      }
+      for(let i=0;i<h;i++) lista.push({g, m:m.id, d:x.d||"", len:1});
+    });
+  });
+  return lista;
+}
+
+function generar(opciones){
+  const {P, D, seguidas} = preparar();
+  const dispo = {};
+  actual.docentes.forEach(d=> dispo[d.nombre] = d.no || {});
+  const maxDia = +opciones.maxDia;
+
+  function intento(lista, semilla, limite, maxDia){
+    let rnd = semilla;
+    const azar = ()=>{ rnd = (rnd*1103515245 + 12345) & 0x7fffffff; return rnd / 0x7fffffff; };
+    const grupoOcupado = {}, docOcupado = {}, materiaDia = {};
+    actual.grupos.forEach(g=> grupoOcupado[g] = Array.from({length:D}, ()=>Array(P).fill(null)));
+    const libre = (c, di, p)=>{
+      for(let k=0;k<c.len;k++){
+        const pp = p+k;
+        if(grupoOcupado[c.g][di][pp]) return false;
+        if(c.d){
+          if(docOcupado[c.d+"|"+di+"|"+pp]) return false;
+          if(dispo[c.d] && dispo[c.d][actual.dias[di]+"|"+pp]) return false;
+        }
+      }
+      return true;
+    };
+    const posiciones = c=>{
+      const out = [];
+      for(let di=0; di<D; di++){
+        const usadas = materiaDia[c.g+"|"+c.m+"|"+di] || 0;
+        if(usadas + c.len > maxDia) continue;
+        for(let p=0; p+c.len<=P; p++){
+          if(c.len===2 && !seguidas.has(p)) continue;
+          if(libre(c, di, p)) out.push([di,p]);
+        }
+      }
+      return out;
+    };
+    const poner = (c, di, p, v)=>{
+      for(let k=0;k<c.len;k++){
+        grupoOcupado[c.g][di][p+k] = v ? c : null;
+        if(c.d){ const key = c.d+"|"+di+"|"+(p+k); if(v) docOcupado[key] = true; else delete docOcupado[key]; }
+      }
+      const km = c.g+"|"+c.m+"|"+di; materiaDia[km] = (materiaDia[km]||0) + (v ? c.len : -c.len);
+    };
+    const puntaje = (c, di, p)=>{
+      // preferir días donde la materia aún no está, y algo de azar para variar
+      let s = (materiaDia[c.g+"|"+c.m+"|"+di]||0) * 10;
+      return s + azar()*3;
+    };
+
+    const pendientes = lista.slice();
+    const colocadas = [];
+    let nodos = 0;
+    function dfs(){
+      if(!pendientes.length) return true;
+      if(++nodos > limite) return false;
+      // la clase con menos lugares posibles primero
+      let mejor = -1, mejoresPos = null;
+      for(let i=0;i<pendientes.length;i++){
+        const pos = posiciones(pendientes[i]);
+        if(!pos.length) return false;
+        if(!mejoresPos || pos.length < mejoresPos.length || (pos.length===mejoresPos.length && pendientes[i].len > pendientes[mejor].len)){
+          mejor = i; mejoresPos = pos; if(pos.length===1) break;
+        }
+      }
+      const c = pendientes.splice(mejor,1)[0];
+      const orden = mejoresPos.map(x=>[x, puntaje(c, x[0], x[1])]).sort((a,b)=>a[1]-b[1]).slice(0, 6);
+      for(const [[di,p]] of orden){
+        poner(c, di, p, true); colocadas.push([c,di,p]);
+        if(dfs()) return true;
+        poner(c, di, p, false); colocadas.pop();
+        if(nodos > limite) break;
+      }
+      pendientes.splice(mejor, 0, c);
+      return false;
+    }
+    const ok = dfs();
+    return {ok, grupoOcupado, colocadas};
+  }
+
+  // Varias rondas: primero como se pidió; si no se puede, se aflojan las reglas
+  const rondas = [
+    {dobles: opciones.dobles, maxDia},
+    {dobles: false, maxDia},
+    {dobles: false, maxDia: maxDia+1},
+  ];
+  const inicio = Date.now();
+  for(let r=0; r<rondas.length; r++){
+    if(r>0 && rondas[r].dobles===rondas[r-1].dobles && rondas[r].maxDia===rondas[r-1].maxDia) continue;
+    const lista = construirClases(rondas[r].dobles);
+    for(let t=0; t<40 && Date.now()-inicio < 9000; t++){
+      const semilla = (Math.random()*1e9|0) + t;
+      const res = intento(lista, semilla, 4000 + t*500, rondas[r].maxDia);
+      if(res.ok) return {ok:true, ronda:r, res:aResultado(res.grupoOcupado)};
+    }
+  }
+  // No se logró todo: colocar lo que se pueda de forma voraz y reportar lo que faltó
+  return {ok:false, ...voraz(opciones)};
+}
+
+function aResultado(grupoOcupado){
+  const out = {};
+  Object.entries(grupoOcupado).forEach(([g, dias])=>{
+    out[g] = dias.map(fila => fila.map(c => c ? {m:c.m, d:c.d} : null));
+  });
+  return out;
+}
+
+function voraz(opciones){
+  const {P, D, seguidas} = preparar();
+  const lista = construirClases(false).sort((a,b)=> (b.d?1:0)-(a.d?1:0));
+  const res = {}; actual.grupos.forEach(g=> res[g] = Array.from({length:D}, ()=>Array(P).fill(null)));
+  const doc = {}; const faltan = [];
+  const dispo = {}; actual.docentes.forEach(d=> dispo[d.nombre] = d.no || {});
+  lista.forEach(c=>{
+    let puesto = false;
+    for(let di=0; di<D && !puesto; di++) for(let p=0; p<P && !puesto; p++){
+      if(res[c.g][di][p]) continue;
+      if(c.d && (doc[c.d+"|"+di+"|"+p] || (dispo[c.d]||{})[actual.dias[di]+"|"+p])) continue;
+      res[c.g][di][p] = {m:c.m, d:c.d}; if(c.d) doc[c.d+"|"+di+"|"+p] = true; puesto = true;
+    }
+    if(!puesto) faltan.push(c);
+  });
+  return {res, faltan};
+}
+
+function diagnosticar(){
+  const capacidad = clases().length * actual.dias.length;
+  const problemas = [];
+  actual.grupos.forEach(g=>{
+    let s = 0; actual.materias.forEach(m=>{ s += +(actual.horas[m.id+"|"+g]?.h||0); });
+    if(s > capacidad) problemas.push(`El grupo <b>${esc(g)}</b> tiene ${s} horas pero la semana solo tiene ${capacidad}.`);
+  });
+  actual.docentes.forEach(d=>{
+    const c = cargaDocente(d.nombre), libre = capacidad - Object.keys(d.no||{}).length;
+    if(c > libre) problemas.push(`<b>${esc(d.nombre)}</b> tiene ${c} horas asignadas pero solo ${libre} horas disponibles.`);
+  });
+  return problemas;
+}
+
+$("optDobles").onchange = e=>{ actual.opciones.dobles = e.target.checked; guardar(); };
+$("optMaxDia").onchange = e=>{ actual.opciones.maxDia = +e.target.value; guardar(); };
+
+$("btnGenerar").onclick = ()=>{
+  const problemas = diagnosticar();
+  if(problemas.length){
+    $("reporte").innerHTML = `<div class="reporte mal"><b>Antes de generar hay que corregir esto:</b><br>${problemas.join("<br>")}</div>`;
+    return;
+  }
+  if(!actual.grupos.length || !actual.materias.length){ aviso("Faltan grupos o materias"); return; }
+  $("cargando").classList.add("si"); $("btnGenerar").disabled = true; $("reporte").innerHTML = "";
+  setTimeout(()=>{
+    const t0 = performance.now();
+    const r = generar(actual.opciones);
+    $("cargando").classList.remove("si"); $("btnGenerar").disabled = false;
+    const seg = ((performance.now()-t0)/1000).toFixed(1);
+    if(r.ok){
+      actual.resultado = r.res; actual.generadoEl = new Date().toISOString();
+      const nota = r.ronda===1 ? " Para lograrlo, algunas horas dobles quedaron sueltas." : r.ronda===2 ? ` Para lograrlo, algunas materias quedaron con ${+actual.opciones.maxDia+1} horas en un día.` : "";
+      $("reporte").innerHTML = `<div class="reporte ok">✅ Horario listo en ${seg} s: ninguna clase se cruza y todos los grupos tienen sus horas completas.${nota} Si no te gusta, vuelve a generar para obtener otra opción.</div>`;
+    }else{
+      actual.resultado = r.res;
+      const lineas = resumenFaltantes(r.faltan);
+      $("reporte").innerHTML = `<div class="reporte mal">⚠️ No fue posible ubicar todas las clases sin cruces. Quedaron por fuera:<br>${lineas}<br>Revisa la disponibilidad de esos docentes o reparte su carga, y vuelve a generar.</div>`;
+    }
+    guardar(); pintarResultado();
+  }, 30);
+};
+function resumenFaltantes(f){
+  const cuenta = {};
+  f.forEach(c=>{ const k = `${nombreMateria(c.m)} en ${c.g}${c.d?" ("+c.d+")":""}`; cuenta[k] = (cuenta[k]||0) + c.len; });
+  return Object.entries(cuenta).map(([k,v])=>`• ${esc(k)}: ${v} h`).join("<br>");
+}
+function nombreMateria(id){ return actual.materias.find(m=>m.id===id)?.nombre || "?"; }
+function colorDe(id){ return actual.materias.find(m=>m.id===id)?.color || "#eee"; }
+
+// =====================================================================
+//  Vistas del horario
+// =====================================================================
+let vista = "grupo", seleccion = null;
+document.querySelectorAll(".vista-btn").forEach(b=> b.onclick = ()=>{
+  vista = b.dataset.v; document.querySelectorAll(".vista-btn").forEach(x=>x.classList.toggle("activo", x===b));
+  seleccion = null; pintarResultado();
+});
+$("selVista").onchange = ()=>{ seleccion = null; pintarSalida(); };
+
+function pintarResultado(){
+  $("optDobles").checked = !!actual.opciones.dobles; $("optMaxDia").value = actual.opciones.maxDia || 2;
+  const hay = !!actual.resultado;
+  $("barraVista").hidden = !hay; $("pistaCambio").hidden = !hay || vista!=="grupo";
+  if(!hay){ $("salida").innerHTML = `<p class="nota">Cuando tengas listas la jornada, los docentes y las materias, toca <b>Generar horario</b>.</p>`; return; }
+  const sel = $("selVista");
+  const ops = vista==="grupo" ? ["Todos los grupos", ...actual.grupos]
+            : vista==="docente" ? ["Todos los docentes", ...docentesConClase()]
+            : ["Todos los días", ...actual.dias];
+  const previo = sel.value;
+  sel.innerHTML = ops.map(o=>`<option>${esc(o)}</option>`).join("");
+  if(ops.includes(previo)) sel.value = previo;
+  pintarSalida();
+}
+function docentesConClase(){
+  const s = new Set(); Object.values(actual.resultado||{}).forEach(d=>d.forEach(f=>f.forEach(c=>{ if(c && c.d) s.add(c.d); })));
+  return [...s].sort((a,b)=>a.localeCompare(b,"es"));
+}
+function filasHorario(celda){
+  // celda(diaIndex, periodo) -> html ; recorre los bloques con descansos
+  let p = -1, html = "";
+  actual.bloques.forEach(b=>{
+    if(b.t==="pausa"){ html += `<tr class="pausa"><td class="hora">${b.i}<br>${b.f}</td><td colspan="${actual.dias.length}">${esc(b.n||"Descanso")}</td></tr>`; return; }
+    p++;
+    html += `<tr><td class="hora"><b>${p+1}ª</b>${b.i} – ${b.f}</td>` + actual.dias.map((_,di)=>`<td>${celda(di,p)}</td>`).join("") + `</tr>`;
+  });
+  return html;
+}
+function encabezado(titulo, sub){
+  return `<h3>${esc(titulo)}</h3><div class="sub">${esc(sub)}</div>`;
+}
+const INST = "Institución Educativa Rural Santiago de la Selva";
+function hojaGrupo(g){
+  const r = actual.resultado[g]; if(!r) return "";
+  const filas = filasHorario((di,p)=>{
+    const c = r[di]?.[p];
+    if(!c) return `<div class="celda vacia" data-g="${esc(g)}" data-di="${di}" data-p="${p}">libre</div>`;
+    return `<div class="celda" style="background:${colorDe(c.m)}" data-g="${esc(g)}" data-di="${di}" data-p="${p}"><span class="m">${esc(nombreMateria(c.m))}</span>${c.d?`<span class="d">${esc(c.d)}</span>`:""}</div>`;
+  });
+  return `<div class="hoja">${encabezado("Horario de clases · Grupo "+g, INST+" · "+actual.anio)}
+    <table class="horario"><thead><tr><th class="hora">Hora</th>${actual.dias.map(d=>`<th>${d}</th>`).join("")}</tr></thead><tbody>${filas}</tbody></table>${leyenda(g)}</div>`;
+}
+function leyenda(g){
+  const usadas = new Map();
+  const grupos = g ? [g] : actual.grupos;
+  grupos.forEach(x=> actual.resultado[x]?.forEach(d=>d.forEach(c=>{ if(c) usadas.set(c.m, (usadas.get(c.m)||0)+1); })));
+  return `<div class="leyenda">` + [...usadas.entries()].map(([m,n])=>`<span style="background:${colorDe(m)}">${esc(nombreMateria(m))} · ${n} h</span>`).join("") + `</div>`;
+}
+function hojaDocente(nombre){
+  let total = 0;
+  const filas = filasHorario((di,p)=>{
+    const clasesAqui = [];
+    actual.grupos.forEach(g=>{ const c = actual.resultado[g]?.[di]?.[p]; if(c && c.d===nombre) clasesAqui.push([g,c]); });
+    if(!clasesAqui.length) return `<div class="celda vacia">—</div>`;
+    total += clasesAqui.length;
+    return clasesAqui.map(([g,c])=>`<div class="celda" style="background:${colorDe(c.m)}"><span class="m">${esc(g)}</span><span class="d">${esc(nombreMateria(c.m))}</span></div>`).join("");
+  });
+  return `<div class="hoja">${encabezado("Horario de "+nombre, INST+" · "+actual.anio)}
+    <table class="horario"><thead><tr><th class="hora">Hora</th>${actual.dias.map(d=>`<th>${d}</th>`).join("")}</tr></thead><tbody>${filas}</tbody></table>
+    <div class="leyenda"><span style="background:#eef2f8">${total} horas de clase a la semana</span></div></div>`;
+}
+function hojaDia(di){
+  let p = -1, filas = "";
+  actual.bloques.forEach(b=>{
+    if(b.t==="pausa"){ filas += `<tr class="pausa"><td class="hora">${b.i}<br>${b.f}</td><td colspan="${actual.grupos.length}">${esc(b.n||"Descanso")}</td></tr>`; return; }
+    p++;
+    filas += `<tr><td class="hora"><b>${p+1}ª</b>${b.i} – ${b.f}</td>` + actual.grupos.map(g=>{
+      const c = actual.resultado[g]?.[di]?.[p];
+      return `<td>${c ? `<div class="celda" style="background:${colorDe(c.m)}"><span class="m">${esc(nombreMateria(c.m))}</span>${c.d?`<span class="d">${esc(c.d)}</span>`:""}</div>` : `<div class="celda vacia">libre</div>`}</td>`;
+    }).join("") + `</tr>`;
+  });
+  return `<div class="hoja sabana">${encabezado(actual.dias[di]+" · "+actual.nombre, INST+" · "+actual.anio)}
+    <table class="horario"><thead><tr><th class="hora">Hora</th>${actual.grupos.map(g=>`<th>${esc(g)}</th>`).join("")}</tr></thead><tbody>${filas}</tbody></table></div>`;
+}
+function pintarSalida(){
+  const v = $("selVista").value; let html = "";
+  if(vista==="grupo") html = (v==="Todos los grupos" ? actual.grupos : [v]).map(hojaGrupo).join("");
+  else if(vista==="docente") html = (v==="Todos los docentes" ? docentesConClase() : [v]).map(hojaDocente).join("");
+  else html = (v==="Todos los días" ? actual.dias.map((_,i)=>i) : [actual.dias.indexOf(v)]).map(hojaDia).join("");
+  if(vista==="docente" && !docentesConClase().length) html = `<p class="nota">Ninguna materia tiene docente asignado todavía. Asígnalos en el paso 3.</p>`;
+  $("salida").innerHTML = html;
+  if(vista==="grupo") activarIntercambio();
+}
+
+// Intercambiar dos casillas de un mismo grupo
+function activarIntercambio(){
+  document.querySelectorAll("#salida .celda[data-g]").forEach(el=>{
+    el.onclick = ()=>{
+      const g = el.dataset.g, di = +el.dataset.di, p = +el.dataset.p;
+      if(!seleccion){ seleccion = {g,di,p,el}; el.classList.add("sel"); return; }
+      if(seleccion.el===el){ el.classList.remove("sel"); seleccion = null; return; }
+      if(seleccion.g !== g){ seleccion.el.classList.remove("sel"); seleccion = {g,di,p,el}; el.classList.add("sel"); return; }
+      const r = actual.resultado[g];
+      const a = r[seleccion.di][seleccion.p], b = r[di][p];
+      const choque = (c, dDest, pDest)=>{
+        if(!c || !c.d) return null;
+        for(const otro of actual.grupos){ if(otro===g) continue; const x = actual.resultado[otro]?.[dDest]?.[pDest]; if(x && x.d===c.d) return `${c.d} ya tiene clase en ${otro} a esa hora`; }
+        const doc = actual.docentes.find(d=>d.nombre===c.d);
+        if(doc && doc.no && doc.no[actual.dias[dDest]+"|"+pDest]) return `${c.d} no está disponible a esa hora`;
+        return null;
+      };
+      const err = choque(a, di, p) || choque(b, seleccion.di, seleccion.p);
+      if(err){ el.classList.add("cruce"); setTimeout(()=>el.classList.remove("cruce"), 900); aviso("⛔ " + err); seleccion.el.classList.remove("sel"); seleccion = null; return; }
+      r[seleccion.di][seleccion.p] = b; r[di][p] = a; seleccion = null;
+      guardar(); pintarSalida(); aviso("🔁 Clases intercambiadas");
+    };
+  });
+}
+
+// =====================================================================
+//  Exportar
+// =====================================================================
+$("btnImprimir").onclick = ()=> window.print();
+$("btnExcel").onclick = ()=>{
+  if(!window.XLSX){ aviso("No se pudo cargar el generador de Excel"); return; }
+  const wb = XLSX.utils.book_new();
+  const hojaTabla = (titulo, cabeza, celda)=>{
+    const filas = [[titulo], [], ["Hora", "", ...cabeza]];
+    let p = -1;
+    actual.bloques.forEach(b=>{
+      if(b.t==="pausa"){ filas.push([b.i+" - "+b.f, "", (b.n||"Descanso").toUpperCase()]); return; }
+      p++; filas.push([`${p+1}ª`, b.i+" - "+b.f, ...cabeza.map((_,i)=>celda(i,p))]);
+    });
+    const ws = XLSX.utils.aoa_to_sheet(filas);
+    ws["!cols"] = [{wch:8},{wch:13}, ...cabeza.map(()=>({wch:24}))];
+    return ws;
+  };
+  const nombreHoja = s => s.replace(/[\\/?*\[\]:]/g,"").slice(0,31);
+  // vista general: un bloque por día, como el horario del colegio
+  const general = [[actual.nombre+" · "+actual.anio], []];
+  actual.dias.forEach((d,di)=>{
+    general.push(["Hora", "", ...actual.grupos.map(g=>d+" · "+g)]);
+    let p = -1;
+    actual.bloques.forEach(b=>{
+      if(b.t==="pausa"){ general.push(["", b.i+" - "+b.f, (b.n||"Descanso").toUpperCase()]); return; }
+      p++; general.push([p+1, b.i+" - "+b.f, ...actual.grupos.map(g=>{ const c = actual.resultado[g]?.[di]?.[p]; return c ? nombreMateria(c.m).toUpperCase() : ""; })]);
+    });
+    general.push([]);
+  });
+  const wsG = XLSX.utils.aoa_to_sheet(general); wsG["!cols"] = [{wch:6},{wch:13}, ...actual.grupos.map(()=>({wch:22}))];
+  XLSX.utils.book_append_sheet(wb, wsG, "General");
+  actual.grupos.forEach(g=>{
+    XLSX.utils.book_append_sheet(wb, hojaTabla(`Horario ${g} · ${INST} · ${actual.anio}`, actual.dias, (di,p)=>{
+      const c = actual.resultado[g]?.[di]?.[p]; return c ? nombreMateria(c.m) + (c.d ? " – "+c.d : "") : "";
+    }), nombreHoja("Grupo "+g));
+  });
+  docentesConClase().forEach(n=>{
+    XLSX.utils.book_append_sheet(wb, hojaTabla(`Horario de ${n} · ${actual.anio}`, actual.dias, (di,p)=>{
+      return actual.grupos.filter(g=>actual.resultado[g]?.[di]?.[p]?.d===n).map(g=>g+" – "+nombreMateria(actual.resultado[g][di][p].m)).join(" / ");
+    }), nombreHoja(n));
+  });
+  XLSX.writeFile(wb, `Horario_${actual.nombre.replace(/[^\wáéíóúñÁÉÍÓÚÑ°]+/g,"_")}.xlsx`);
+  aviso("✅ Excel descargado");
+};
+
+$("btnDescargarDatos").onclick = ()=>{
+  const blob = new Blob([JSON.stringify(estado, null, 1)], {type:"application/json"});
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "horarios-iersss.json";
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+  aviso("💾 Archivo descargado");
+};
+$("abrirDatos").onchange = async e=>{
+  const f = e.target.files[0]; if(!f) return;
+  try{
+    const d = JSON.parse(await f.text());
+    if(!d.horarios || !d.horarios.length) throw 0;
+    estado = d; actual = estado.horarios.find(h=>h.id===estado.activo) || estado.horarios[0];
+    guardar(); pintarTodo(); aviso("📂 Horarios cargados");
+  }catch(err){ aviso("⚠️ Ese archivo no es un horario válido"); }
+  e.target.value = "";
+};
+$("btnRestaurar").onclick = ()=>{
+  if(!confirm("Esto borra lo que tengas en este navegador y vuelve a cargar el ejemplo. ¿Continuar?")) return;
+  estado = {activo:"bach", horarios:[ejemploPrimaria(), ejemploBachillerato()]}; actual = estado.horarios[1];
+  guardar(); pintarTodo(); aviso("Ejemplo restaurado");
+};
+
+// =====================================================================
+function pintarTodo(){
+  pintarTabs(); pintarJornada(); pintarGrupos(); pintarDocentes();
+  const activa = document.querySelector(".paso.activo")?.dataset.s || "jornada";
+  irA(activa);
+}
+pintarTema();
+pintarTodo();
+</script>
+</body>
+</html>
