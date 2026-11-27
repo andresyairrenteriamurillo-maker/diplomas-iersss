@@ -12,4 +12,4 @@ Permite poner el tipo y número de documento debajo de la línea del nombre. Tam
 
 ## Generador de horarios
 
-`horario.html` arma horarios por grupo sin cruces de docentes. Se llenan la jornada, los grupos, los docentes (con sus horas no disponibles) y la intensidad horaria de cada materia. Se ve por grupo, por docente o en vista general, y se descarga en Excel o se imprime.
+`horario.html` arma horarios sin cruces de docentes, con el formato del colegio (colores por docente y cuadro de horas por día). Se llena la jornada, los grupos, los docentes con su color y sus horas no disponibles, y la asignación académica; una clase puede ser compartida por varios grupos (por ejemplo 10° y 11°). Trae cargado el horario 2026 de bachillerato. Se ve en formato del colegio, por grupo o por docente, y se descarga en Excel con colores o se imprime.
